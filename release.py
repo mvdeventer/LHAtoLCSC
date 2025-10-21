@@ -365,7 +365,7 @@ def update_version_in_files(version: str):
     
     for config_file in config_files:
         if config_file.exists():
-            content = config_file.read_text()
+            content = config_file.read_text(encoding='utf-8')
             
             # Try different version patterns
             patterns = [
@@ -381,7 +381,7 @@ def update_version_in_files(version: str):
                     updated = True
             
             if updated:
-                config_file.write_text(content)
+                config_file.write_text(content, encoding='utf-8')
                 print_success(f"Updated version in {config_file}")
 
 
@@ -397,7 +397,7 @@ def create_changelog_entry(version: str, release_notes: str):
     
     # Read existing changelog or create new one
     if changelog_path.exists():
-        existing_content = changelog_path.read_text()
+        existing_content = changelog_path.read_text(encoding='utf-8')
     else:
         existing_content = "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n"
     
@@ -418,7 +418,7 @@ def create_changelog_entry(version: str, release_notes: str):
     # Insert new entry
     updated_content = '\n'.join(lines[:header_end]) + '\n\n' + new_entry + '\n\n' + '\n'.join(lines[header_end:])
     
-    changelog_path.write_text(updated_content)
+    changelog_path.write_text(updated_content, encoding='utf-8')
     print_success(f"Updated CHANGELOG.md")
 
 
@@ -477,7 +477,7 @@ def create_github_release(version: str, release_notes: str, prerelease: bool = F
     
     # Save release notes to temporary file
     notes_file = Path("release_notes_temp.md")
-    notes_file.write_text(release_notes)
+    notes_file.write_text(release_notes, encoding='utf-8')
     
     try:
         # Create release
