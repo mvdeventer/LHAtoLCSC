@@ -71,6 +71,9 @@ cache/
 temp/
 tmp/
 
+# Mock server large database
+tests/mock_products_large.json
+
 # User data
 user_data/
 exports/

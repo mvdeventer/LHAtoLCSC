@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## v0.1.0
+
+**Release Date:** 2025-10-21
+
+## ✨ New Features
+
+- feat: Add version info to all windows and complete release automation
+- feat: Initial project setup with complete structure
+
+## 🐛 Bug Fixes
+
+- fix: Add UTF-8 encoding support to release script for Windows compatibility
+
+---
+
+## 📋 Requirements
+
+- Python 3.8 or higher
+- tkinter (usually included with Python)
+- Flask 3.1.2 (for mock server)
+
+## 🚀 Installation
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+## 🧪 Testing with Mock Server
+
+```bash
+python tests/mock_lcsc_server.py
+```
+
+Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
+
+
 ## [Unreleased]
 
 ### Added
