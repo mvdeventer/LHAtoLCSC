@@ -21,7 +21,7 @@ class PriceTier:
     def from_dict(cls, data: Dict[str, Any]) -> "PriceTier":
         """Create PriceTier from API response dict."""
         return cls(
-            quantity=int(data.get("startAmount", 0)),
+            quantity=int(data.get("startAmount", data.get("startNumber", 0))),
             unit_price=float(data.get("productPrice", 0.0)),
             currency=data.get("currency", "USD")
         )
@@ -73,18 +73,18 @@ class LCSCProduct:
             product_number=data.get("productCode", ""),
             product_code=data.get("productCode", ""),
             product_name=data.get("productModel", ""),
-            manufacturer=data.get("brandNameEn", ""),
+            manufacturer=data.get("brandNameEn", data.get("brandName", "")),
             manufacturer_part=data.get("productModel", ""),
-            description=data.get("productIntroEn", ""),
+            description=data.get("productIntroEn", data.get("productName", "")),
             category_id=int(data.get("parentCatalogId", 0)),
             category_name=data.get("parentCatalogName", ""),
             stock=int(data.get("stockNumber", 0)),
             price_tiers=price_tiers,
             datasheet_url=data.get("pdfUrl", ""),
             image_url=data.get("productImages", ""),
-            is_available=bool(data.get("isStock", False)),
+            is_available=bool(data.get("isStock", data.get("stockNumber", 0) > 0)),
             is_pre_sale=bool(data.get("isPresale", False)),
-            package_type=data.get("encapStandard", "")
+            package_type=data.get("encapStandard", data.get("packageType", ""))
         )
 
 
