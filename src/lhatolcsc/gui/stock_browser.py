@@ -222,10 +222,16 @@ class StockBrowserWindow:
             self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
             self.status_var.set(f"Loaded {len(self.products)} products (Page {self.current_page}/{self.total_pages})")
             
+            # Force UI update
+            self.window.update_idletasks()
+            
             logger.info(f"Loaded {len(self.products)} products from mock server")
                 
         except Exception as e:
+            # Temporarily release grab for error dialog
+            self.window.grab_release()
             messagebox.showerror("Error", f"Failed to load products:\n{str(e)}")
+            self.window.grab_set()
             self.status_var.set("Error loading products")
             logger.error(f"Failed to load products: {e}", exc_info=True)
     
@@ -303,23 +309,20 @@ class StockBrowserWindow:
             
             self._populate_tree()
             
-            self.result_count_var.set(f"Total: {total} products in stock")
+            self.result_count_var.set(f"📦 Total: {total:,} products in stock")
             self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
-            self.status_var.set(f"Listing all stock: {len(self.products)} products on this page (Total: {total})")
+            self.status_var.set(f"✅ Listed all stock: Showing {len(self.products)} products (Page {self.current_page}/{self.total_pages}, Total: {total:,})")
+            
+            # Force UI update to ensure products are visible
+            self.window.update_idletasks()
             
             logger.info(f"Listed all stock: {total} total products, showing page {self.current_page}/{self.total_pages}")
-            
-            messagebox.showinfo(
-                "All Stock Listed",
-                f"Loaded all stock from mock server.\n\n"
-                f"Total products: {total:,}\n"
-                f"Showing page {self.current_page} of {self.total_pages}\n"
-                f"Page size: {self.page_size} products\n\n"
-                f"Use pagination controls to browse through all products."
-            )
                 
         except Exception as e:
+            # Temporarily release grab for error dialog
+            self.window.grab_release()
             messagebox.showerror("Error", f"Failed to list all stock:\n{str(e)}")
+            self.window.grab_set()
             self.status_var.set("Error listing stock")
             logger.error(f"Failed to list all stock: {e}", exc_info=True)
     
