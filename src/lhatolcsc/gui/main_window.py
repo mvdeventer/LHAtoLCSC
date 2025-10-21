@@ -70,6 +70,8 @@ class MainWindow:
         tools_menu.add_command(label="Settings...", command=self._show_settings)
         tools_menu.add_command(label="Test API Connection", command=self._test_api)
         tools_menu.add_separator()
+        tools_menu.add_command(label="Browse Mock Server Stock (Debug)", command=self._browse_stock)
+        tools_menu.add_separator()
         tools_menu.add_command(label="Reset Credentials...", command=self._reset_credentials)
         
         # Help menu
@@ -230,6 +232,20 @@ class MainWindow:
                 f"Failed to reset credentials:\n{str(e)}\n\n"
                 "Please manually delete or edit the .env file."
             )
+    
+    def _browse_stock(self) -> None:
+        """Open stock browser window (debug feature)."""
+        if not self.api_client:
+            messagebox.showwarning(
+                "API Not Configured",
+                "Please configure your LCSC API credentials first.\n\n"
+                "Go to Tools → Settings to set up your API connection."
+            )
+            return
+        
+        # Create stock browser window
+        from lhatolcsc.gui.stock_browser import StockBrowserWindow
+        StockBrowserWindow(self.root, self.api_client, self.config)
     
     def _show_help(self) -> None:
         """Show user guide."""
