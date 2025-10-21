@@ -708,7 +708,7 @@ def search_products():
             "total": len(results),
             "current_page": current_page,
             "page_size": page_size,
-            "list": paginated
+            "productList": paginated  # Changed from "list" to "productList"
         }
     })
 
