@@ -186,6 +186,7 @@ class StockBrowserWindow:
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=6, column=0, columnspan=3, pady=(10, 0))
         
+        ttk.Button(button_frame, text="List All Stock", command=self._list_all_stock).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Refresh", command=self._load_products).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Export to CSV", command=self._export_csv).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=5)
@@ -279,6 +280,48 @@ class StockBrowserWindow:
         self.search_var.set("")
         self.current_page = 1
         self._load_products()
+    
+    def _list_all_stock(self):
+        """List all stock from mock server (no keyword filter)."""
+        self.search_var.set("")  # Clear search field
+        self.current_page = 1
+        self.status_var.set("Loading all stock from mock server...")
+        self.window.update()
+        
+        try:
+            # Load all products by searching with empty keyword
+            result = self.api_client.search_products(
+                keyword="",
+                current_page=self.current_page,
+                page_size=self.page_size
+            )
+            
+            # Store LCSCProduct objects
+            self.products = result.products
+            total = result.total
+            self.total_pages = result.total_pages
+            
+            self._populate_tree()
+            
+            self.result_count_var.set(f"Total: {total} products in stock")
+            self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
+            self.status_var.set(f"Listing all stock: {len(self.products)} products on this page (Total: {total})")
+            
+            logger.info(f"Listed all stock: {total} total products, showing page {self.current_page}/{self.total_pages}")
+            
+            messagebox.showinfo(
+                "All Stock Listed",
+                f"Loaded all stock from mock server.\n\n"
+                f"Total products: {total:,}\n"
+                f"Showing page {self.current_page} of {self.total_pages}\n"
+                f"Page size: {self.page_size} products\n\n"
+                f"Use pagination controls to browse through all products."
+            )
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to list all stock:\n{str(e)}")
+            self.status_var.set("Error listing stock")
+            logger.error(f"Failed to list all stock: {e}", exc_info=True)
     
     def _previous_page(self):
         """Go to previous page."""
