@@ -82,7 +82,7 @@ class LCSCProduct:
             price_tiers=price_tiers,
             datasheet_url=data.get("pdfUrl", ""),
             image_url=data.get("productImages", ""),
-            is_available=bool(data.get("isStock", data.get("stockNumber", 0) > 0)),
+            is_available=bool(data.get("isStock") or int(data.get("stockNumber", 0)) > 0),
             is_pre_sale=bool(data.get("isPresale", False)),
             package_type=data.get("encapStandard", data.get("packageType", ""))
         )
