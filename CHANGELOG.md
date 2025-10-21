@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Release automation script (`release.py`) with version detection and GitHub CLI integration
+- Automatic release notes generation from commit messages
+- Mock server credentials auto-fill button (🧪) in settings wizard
+- Mock API server with 104,042+ components:
+  - 35,280 Resistors (10 manufacturers, 12 packages)
+  - 49,329 Capacitors (10 manufacturers, various packages)
+  - 8,652 Inductors (8 manufacturers)
+  - 6,780 Crystals (7 manufacturers)
+  - 1,305 ICs (MCUs, op-amps, regulators, interface ICs)
+  - 516 Sensors (temperature, pressure, humidity, motion, magnetic, light)
+  - 2,180 Connectors (USB, pin headers, card slots, wire-to-board, RF)
+- Comprehensive release process documentation (RELEASE.md)
+
+### Fixed
+- Sticky parameter types in tkinter (converted tuples to strings)
+- API endpoint paths to match LCSC structure (/rest/wmsc2agent/*)
+- Authentication to use query parameters instead of headers
+
 ### Planned
 - Full GUI implementation for BOM management
 - Advanced fuzzy matching algorithms

@@ -4,9 +4,8 @@ requests>=2.31.0
 urllib3>=2.0.0
 
 # Excel processing
-openpyxl>=3.1.2
+xlwings>=0.30.0
 pandas>=2.1.0
-xlrd>=2.0.1
 
 # Fuzzy matching
 rapidfuzz>=3.5.0

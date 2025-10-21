@@ -9,6 +9,7 @@ from tkinter import messagebox
 from lhatolcsc.core.config import Config
 from lhatolcsc.core.logger import setup_logger
 from lhatolcsc.gui.main_window import MainWindow
+from lhatolcsc.gui.settings_dialog import SettingsDialog
 
 
 def main() -> int:
@@ -27,15 +28,25 @@ def main() -> int:
         config = Config()
         logger.info(f"Configuration loaded: {config.app_name} v{config.version}")
         
-        # Validate API credentials
-        if not config.lcsc_api_key or not config.lcsc_api_secret:
-            logger.warning("API credentials not configured")
-            messagebox.showwarning(
-                "Configuration Required",
-                "LCSC API credentials are not configured.\n\n"
-                "Please edit the .env file and add your API key and secret.\n"
-                "You can obtain these from: https://www.lcsc.com/agent"
-            )
+        # Check if this is first run (no credentials configured)
+        if not config.is_configured():
+            logger.info("First run detected - showing setup wizard")
+            
+            # For first run, create the wizard as the main window
+            # Don't create a separate root window yet
+            wizard = SettingsDialog(None, config, is_first_run=True)
+            result = wizard.show()
+            
+            if not result:
+                # User cancelled setup
+                logger.info("User cancelled first-run setup - exiting")
+                return 0
+            
+            # Reload config after setup
+            config.reload()
+            logger.info("Configuration updated from setup wizard")
+        else:
+            logger.info("API credentials already configured")
         
         # Create main window
         root = tk.Tk()
@@ -51,11 +62,14 @@ def main() -> int:
         
     except Exception as e:
         logger.exception(f"Fatal error: {e}")
-        messagebox.showerror(
-            "Fatal Error",
-            f"An unexpected error occurred:\n\n{str(e)}\n\n"
-            "Please check the log file for details."
-        )
+        try:
+            messagebox.showerror(
+                "Fatal Error",
+                f"An unexpected error occurred:\n\n{str(e)}\n\n"
+                "Please check the log file for details."
+            )
+        except:
+            pass
         return 1
 
 

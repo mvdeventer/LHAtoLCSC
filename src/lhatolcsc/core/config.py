@@ -34,14 +34,20 @@ class Config:
         # API Configuration
         self.lcsc_api_key = os.getenv("LCSC_API_KEY", "")
         self.lcsc_api_secret = os.getenv("LCSC_API_SECRET", "")
+        self.lcsc_api_url = os.getenv("LCSC_API_URL", "https://api.lcsc.com/v1")
         self.lcsc_api_base_url = os.getenv("LCSC_API_BASE_URL", "https://www.lcsc.com")
+        self.request_timeout = int(os.getenv("REQUEST_TIMEOUT", "30"))
         self.lcsc_api_timeout = int(os.getenv("LCSC_API_TIMEOUT", "30"))
         self.lcsc_api_max_retries = int(os.getenv("LCSC_API_MAX_RETRIES", "3"))
+        
+        # Network Settings
+        self.user_ip = os.getenv("USER_IP", "")
         
         # Application Settings
         self.default_currency = os.getenv("DEFAULT_CURRENCY", "USD")
         self.default_page_size = int(os.getenv("DEFAULT_PAGE_SIZE", "100"))
         self.fuzzy_match_threshold = int(os.getenv("FUZZY_MATCH_THRESHOLD", "75"))
+        self.default_match_threshold = float(os.getenv("DEFAULT_MATCH_THRESHOLD", "0.70"))
         self.enable_cache = os.getenv("ENABLE_CACHE", "true").lower() == "true"
         self.cache_ttl_days = int(os.getenv("CACHE_TTL_DAYS", "7"))
         
@@ -87,6 +93,11 @@ class Config:
             True if credentials are present, False otherwise
         """
         return bool(self.lcsc_api_key and self.lcsc_api_secret)
+    
+    def reload(self) -> None:
+        """Reload configuration from environment variables."""
+        load_dotenv(override=True)
+        self.__init__()
     
     def get_cache_path(self, cache_name: str) -> Path:
         """

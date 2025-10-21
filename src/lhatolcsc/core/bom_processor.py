@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
-from openpyxl import load_workbook
+import xlwings as xw
 
 from lhatolcsc.api.models import BOMItem
 
@@ -70,11 +70,17 @@ class BOMProcessor:
             if not self.file_path.exists():
                 return False, "File does not exist"
             
-            # Try reading with pandas
-            if self.file_path.suffix.lower() == '.xlsx':
-                self.bom_df = pd.read_excel(file_path, engine='openpyxl')
-            elif self.file_path.suffix.lower() == '.xls':
-                self.bom_df = pd.read_excel(file_path, engine='xlrd')
+            # Try reading with xlwings for Excel files
+            if self.file_path.suffix.lower() in ['.xlsx', '.xls', '.xlsm']:
+                # Use xlwings to read Excel file
+                with xw.App(visible=False) as app:
+                    wb = app.books.open(str(self.file_path))
+                    sheet = wb.sheets[0]  # Get first sheet
+                    
+                    # Read all data from sheet
+                    data = sheet.used_range.options(pd.DataFrame, header=1, index=False).value
+                    self.bom_df = data
+                    wb.close()
             elif self.file_path.suffix.lower() == '.csv':
                 self.bom_df = pd.read_csv(file_path)
             else:
@@ -206,8 +212,20 @@ class BOMProcessor:
             
             df = pd.DataFrame(data)
             
-            # Export to Excel
-            df.to_excel(output_path, index=False, engine='openpyxl')
+            # Export to Excel using xlwings
+            with xw.App(visible=False) as app:
+                wb = app.books.add()
+                sheet = wb.sheets[0]
+                
+                # Write dataframe to sheet
+                sheet.range('A1').options(index=False).value = df
+                
+                # Auto-fit columns
+                sheet.autofit(axis='columns')
+                
+                # Save and close
+                wb.save(output_path)
+                wb.close()
             
             logger.info(f"Exported BOM to {output_path}")
             return True, f"Successfully exported to {output_path}"

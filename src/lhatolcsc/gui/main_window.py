@@ -8,6 +8,7 @@ from tkinter import ttk, messagebox
 
 from lhatolcsc.api.client import LCSCClient
 from lhatolcsc.core.config import Config
+from lhatolcsc.gui.settings_dialog import SettingsDialog
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class MainWindow:
         """
         self.root = root
         self.config = config
-        self.api_client: LCSCClient = None
+        self.api_client: LCSCClient | None = None
         
         # Setup window
         self.root.title(f"{config.app_name} v{config.version}")
@@ -38,9 +39,8 @@ class MainWindow:
                 self.api_client = LCSCClient(
                     api_key=config.lcsc_api_key,
                     api_secret=config.lcsc_api_secret,
-                    base_url=config.lcsc_api_base_url,
-                    timeout=config.lcsc_api_timeout,
-                    max_retries=config.lcsc_api_max_retries
+                    base_url=config.lcsc_api_url,
+                    timeout=config.request_timeout
                 )
                 logger.info("API client initialized")
             except Exception as e:
@@ -48,6 +48,7 @@ class MainWindow:
                 messagebox.showerror("API Error", f"Failed to initialize API client:\n{e}")
         
         self._create_widgets()
+        logger.info("Application GUI initialized")
     
     def _create_widgets(self) -> None:
         """Create GUI widgets."""
@@ -68,6 +69,8 @@ class MainWindow:
         menubar.add_cascade(label="Tools", menu=tools_menu)
         tools_menu.add_command(label="Settings...", command=self._show_settings)
         tools_menu.add_command(label="Test API Connection", command=self._test_api)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="Reset Credentials...", command=self._reset_credentials)
         
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -133,7 +136,22 @@ class MainWindow:
     
     def _show_settings(self) -> None:
         """Show settings dialog."""
-        messagebox.showinfo("Coming Soon", "Settings dialog coming soon!")
+        dialog = SettingsDialog(self.root, self.config, is_first_run=False)
+        if dialog.show():
+            # Reinitialize API client with new settings
+            if self.config.is_configured():
+                try:
+                    self.api_client = LCSCClient(
+                        api_key=self.config.lcsc_api_key,
+                        api_secret=self.config.lcsc_api_secret,
+                        base_url=self.config.lcsc_api_url,
+                        timeout=self.config.request_timeout
+                    )
+                    self.status_var.set("Settings updated and API client reinitialized")
+                    logger.info("API client reinitialized after settings update")
+                except Exception as e:
+                    logger.error(f"Failed to reinitialize API client: {e}")
+                    messagebox.showerror("API Error", f"Failed to initialize API client:\n{e}")
     
     def _test_api(self) -> None:
         """Test API connection."""
@@ -153,6 +171,65 @@ class MainWindow:
         else:
             messagebox.showerror("Error", "API connection failed!")
             self.status_var.set("API connection failed")
+    
+    def _reset_credentials(self) -> None:
+        """Reset API credentials - clears .env file and shows setup wizard on next restart."""
+        from pathlib import Path
+        
+        # Confirm action
+        response = messagebox.askyesno(
+            "Reset Credentials",
+            "This will clear your API credentials and settings.\n\n"
+            "The setup wizard will appear when you restart the application.\n\n"
+            "Do you want to continue?",
+            icon=messagebox.WARNING
+        )
+        
+        if not response:
+            return
+        
+        try:
+            env_path = Path(self.config.project_root) / ".env"
+            
+            if env_path.exists():
+                # Backup existing .env file
+                backup_path = env_path.with_suffix(".env.backup")
+                import shutil
+                shutil.copy2(env_path, backup_path)
+                logger.info(f"Backed up .env to {backup_path}")
+                
+                # Clear the .env file (write minimal content)
+                with open(env_path, "w") as f:
+                    f.write("# LHAtoLCSC Configuration\n")
+                    f.write("# Credentials have been reset\n")
+                    f.write("# The setup wizard will appear on next startup\n\n")
+                    f.write("LCSC_API_KEY=\n")
+                    f.write("LCSC_API_SECRET=\n")
+                
+                logger.info("Credentials reset successfully")
+                
+                messagebox.showinfo(
+                    "Credentials Reset",
+                    "Credentials have been cleared successfully!\n\n"
+                    f"A backup has been saved to:\n{backup_path}\n\n"
+                    "The setup wizard will appear when you restart the application.\n\n"
+                    "Click OK to close the application."
+                )
+                
+                # Close the application
+                self.root.quit()
+            else:
+                messagebox.showinfo(
+                    "No Configuration Found",
+                    "No configuration file found. The setup wizard will appear automatically on next startup."
+                )
+        except Exception as e:
+            logger.error(f"Failed to reset credentials: {e}")
+            messagebox.showerror(
+                "Reset Failed",
+                f"Failed to reset credentials:\n{str(e)}\n\n"
+                "Please manually delete or edit the .env file."
+            )
     
     def _show_help(self) -> None:
         """Show user guide."""

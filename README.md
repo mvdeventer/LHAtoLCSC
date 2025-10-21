@@ -155,7 +155,36 @@ Contributions are welcome! Please follow these steps:
 
 Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
-## 📝 License
+## � Release Process
+
+This project uses automated releases with semantic versioning. To create a new release:
+
+```bash
+# Preview the release
+python release.py patch --dry-run
+
+# Create a patch release (bug fixes: 0.1.0 -> 0.1.1)
+python release.py patch
+
+# Create a minor release (new features: 0.1.0 -> 0.2.0)
+python release.py minor
+
+# Create a major release (breaking changes: 0.1.0 -> 1.0.0)
+python release.py major
+```
+
+The release script automatically:
+- ✅ Detects the next version number
+- ✅ Generates release notes from commits
+- ✅ Updates version in files and CHANGELOG.md
+- ✅ Creates git commit and tag
+- ✅ Pushes to GitHub and creates release
+
+For detailed instructions, see [RELEASE.md](RELEASE.md) or [Quick Start Guide](RELEASE_QUICKSTART.md).
+
+**Prerequisites:** Install [GitHub CLI](https://cli.github.com/) and authenticate with `gh auth login`
+
+## �📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
