@@ -87,13 +87,17 @@ def check_requirements() -> bool:
     """Check if required tools are installed."""
     print_info("Checking requirements...")
     
-    # Check PyInstaller
-    try:
-        subprocess.run(['pyinstaller', '--version'], capture_output=True, check=True)
-        print_success("PyInstaller is installed")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print_error("PyInstaller not found. Install with: pip install pyinstaller")
-        return False
+    # Check PyInstaller (prefer venv version)
+    venv_pyinstaller = Path('venv/Scripts/pyinstaller.exe')
+    if venv_pyinstaller.exists():
+        print_success(f"PyInstaller is installed (venv)")
+    else:
+        try:
+            subprocess.run(['pyinstaller', '--version'], capture_output=True, check=True)
+            print_success("PyInstaller is installed (system)")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print_error("PyInstaller not found. Install with: pip install pyinstaller")
+            return False
     
     # Check InnoSetup (optional but recommended)
     inno_paths = [
@@ -151,7 +155,6 @@ a = Analysis(
         ('src/lhatolcsc', 'lhatolcsc'),
         ('README.md', '.'),
         ('LICENSE', '.'),
-        ('.env.example', '.'),
     ],
     hiddenimports=[
         'tkinter',
@@ -160,20 +163,25 @@ a = Analysis(
         'PIL.Image',
         'PIL.ImageTk',
         'requests',
-        'dotenv',
         'urllib3',
         'certifi',
         'charset_normalizer',
         'idna',
         'xlwings',
         'pandas',
+        'numpy',
         'rapidfuzz',
         'yaml',
-        'pyyaml',
         'dateutil',
         'tqdm',
         'pydantic',
+        'pydantic_core',
         'diskcache',
+        # python-dotenv imports
+        'dotenv',
+        'dotenv.main',
+        'dotenv.parser',
+        'dotenv.variables',
     ],
     hookspath=[],
     hooksconfig={{}},
@@ -205,7 +213,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # No console window for GUI app
+    console=True,  # Temporarily enable console to see errors
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -273,7 +281,12 @@ def build_executable() -> bool:
     print_info("Building executable with PyInstaller...")
     print_info("This may take several minutes...")
     
-    cmd = ['pyinstaller', '--clean', '--noconfirm', 'LHAtoLCSC.spec']
+    # Use venv's pyinstaller if available, otherwise system pyinstaller
+    venv_pyinstaller = Path('venv/Scripts/pyinstaller.exe')
+    if venv_pyinstaller.exists():
+        cmd = [str(venv_pyinstaller), '--clean', '--noconfirm', 'LHAtoLCSC.spec']
+    else:
+        cmd = ['pyinstaller', '--clean', '--noconfirm', 'LHAtoLCSC.spec']
     
     if not run_command(cmd):
         return False

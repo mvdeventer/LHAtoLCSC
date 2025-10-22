@@ -34,6 +34,12 @@ class MainWindow:
         self.root.title(f"{config.app_name} v{config.version}")
         self.root.geometry(f"{config.window_width}x{config.window_height}")
         
+        # Ensure window appears in foreground
+        self.root.lift()
+        self.root.attributes('-topmost', True)
+        self.root.after_idle(self.root.attributes, '-topmost', False)
+        self.root.focus_force()
+        
         # Apply corporate theme
         self.style = CorporateTheme.apply_to_root(self.root)
         
