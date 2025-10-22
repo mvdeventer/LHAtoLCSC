@@ -9,6 +9,7 @@ from tkinter import ttk, messagebox
 from lhatolcsc.api.client import LCSCClient
 from lhatolcsc.core.config import Config
 from lhatolcsc.gui.settings_dialog import SettingsDialog
+from lhatolcsc.gui.theme import CorporateTheme
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,9 @@ class MainWindow:
         # Setup window
         self.root.title(f"{config.app_name} v{config.version}")
         self.root.geometry(f"{config.window_width}x{config.window_height}")
+        
+        # Apply corporate theme
+        self.style = CorporateTheme.apply_to_root(self.root)
         
         # Setup API client if configured
         if config.is_configured():
@@ -82,13 +86,13 @@ class MainWindow:
         
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid(row=0, column=0, sticky="nsew")
         
         # Welcome label
         welcome_label = ttk.Label(
             main_frame,
             text=f"Welcome to {self.config.app_name}",
-            font=("Arial", 16, "bold")
+            style="Title.TLabel"
         )
         welcome_label.grid(row=0, column=0, pady=20)
         
@@ -108,6 +112,7 @@ class MainWindow:
             main_frame,
             text="Load BOM File",
             command=self._load_bom,
+            style="Accent.TButton",
             width=30
         )
         load_button.grid(row=2, column=0, pady=10)
@@ -115,13 +120,8 @@ class MainWindow:
         # Status bar
         self.status_var = tk.StringVar()
         self.status_var.set("Ready")
-        status_bar = ttk.Label(
-            self.root,
-            textvariable=self.status_var,
-            relief=tk.SUNKEN,
-            anchor=tk.W
-        )
-        status_bar.grid(row=1, column=0, sticky=(tk.W, tk.E))
+        status_bar = CorporateTheme.create_status_bar(self.root, self.status_var)
+        status_bar.grid(row=1, column=0, sticky="we")
         
         # Configure grid weights
         self.root.columnconfigure(0, weight=1)

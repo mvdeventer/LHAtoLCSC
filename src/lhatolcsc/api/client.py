@@ -175,20 +175,24 @@ class LCSCClient:
             keyword: Search keyword (SKU/MPN/Category/Manufacturer)
             match_type: "exact" or "fuzzy" matching
             current_page: Page number (1-indexed)
-            page_size: Results per page (max 100)
+            page_size: Results per page (max 100 for real API, unlimited for mock)
             is_available: Only return in-stock items
             is_pre_sale: Include pre-sale items
             
         Returns:
             SearchResult with products and pagination info
         """
-        logger.info(f"Searching products: keyword='{keyword}', match_type={match_type}")
+        logger.info(f"Searching products: keyword='{keyword}', match_type={match_type}, page_size={page_size}")
+        
+        # Cap at 100 for real LCSC API, but allow larger values for mock server
+        # Check if using mock server (localhost)
+        max_page_size = 1000 if 'localhost' in self.base_url or '127.0.0.1' in self.base_url else 100
         
         params = {
             "keyword": keyword,
             "match_type": match_type,
             "current_page": current_page,
-            "page_size": min(page_size, 100),
+            "page_size": min(page_size, max_page_size),
             "is_available": is_available,
             "is_pre_sale": is_pre_sale
         }

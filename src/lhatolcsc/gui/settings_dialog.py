@@ -11,6 +11,7 @@ from typing import Optional
 import logging
 
 from ..core.config import Config
+from .theme import CorporateTheme
 
 logger = logging.getLogger(__name__)
 
@@ -36,11 +37,15 @@ class SettingsDialog:
             # Standalone mode - create as main Tk window
             self.window = tk.Tk()
             self.standalone = True
+            # Apply theme to root window
+            CorporateTheme.apply_to_root(self.window)
         else:
             # Dialog mode - create as Toplevel
             self.window = tk.Toplevel(parent)
             self.standalone = False
             self.window.transient(parent)
+            # Apply theme to toplevel window
+            CorporateTheme.apply_to_toplevel(self.window)
         
         # Configure window
         title_suffix = " - First Time Setup" if is_first_run else " - Settings"
@@ -85,7 +90,7 @@ class SettingsDialog:
             title_label = ttk.Label(
                 main_frame,
                 text="Welcome to LHAtoLCSC!",
-                font=("Segoe UI", 14, "bold")
+                style="Title.TLabel"
             )
             title_label.grid(row=0, column=0, columnspan=2, pady=(0, 10))
 
@@ -100,7 +105,7 @@ class SettingsDialog:
             start_row = 0
 
         # API Settings Section
-        api_label = ttk.Label(main_frame, text="LCSC API Settings", font=("Segoe UI", 11, "bold"))
+        api_label = ttk.Label(main_frame, text="LCSC API Settings", style="Header.TLabel")
         api_label.grid(row=start_row, column=0, columnspan=2, sticky=tk.W, pady=(0, 10))
 
         # API Key
@@ -140,7 +145,7 @@ class SettingsDialog:
         network_label = ttk.Label(
             main_frame,
             text="Network Settings",
-            font=("Segoe UI", 11, "bold")
+            style="Header.TLabel"
         )
         network_label.grid(row=start_row + 6, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
 
@@ -173,7 +178,7 @@ class SettingsDialog:
         app_label = ttk.Label(
             main_frame,
             text="Application Settings",
-            font=("Segoe UI", 11, "bold")
+            style="Header.TLabel"
         )
         app_label.grid(row=start_row + 10, column=0, columnspan=2, sticky=tk.W, pady=(20, 10))
 
@@ -197,7 +202,6 @@ class SettingsDialog:
             info_frame,
             text="Note: To get API credentials, visit https://www.lcsc.com/agent\n"
                  "and apply for API access. You'll need to whitelist your IP address.",
-            foreground="blue",
             wraplength=550,
             justify=tk.LEFT
         )
@@ -212,6 +216,7 @@ class SettingsDialog:
             button_frame,
             text="Save" if not self.is_first_run else "Save & Continue",
             command=self._on_save,
+            style="Success.TButton",
             width=15
         )
         save_button.pack(side=tk.RIGHT, padx=5)
@@ -226,11 +231,12 @@ class SettingsDialog:
             )
             cancel_button.pack(side=tk.RIGHT, padx=5)
 
-        # Test connection button
+        # Test Connection button
         test_button = ttk.Button(
             button_frame,
             text="Test Connection",
             command=self._test_connection,
+            style="Accent.TButton",
             width=15
         )
         test_button.pack(side=tk.RIGHT, padx=5)
@@ -241,9 +247,7 @@ class SettingsDialog:
         
         version_label = ttk.Label(
             version_frame,
-            text=f"v{self.config.version}",
-            foreground="gray",
-            font=("Segoe UI", 8)
+            text=f"v{self.config.version}"
         )
         version_label.pack()
 
