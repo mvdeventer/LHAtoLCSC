@@ -121,6 +121,25 @@ Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 
 ---
 
+## v0.2.2
+
+**Release Date:** 2025-10-22
+
+### ✨ New Features
+- **Automatic Release Notes**: Release notes are now automatically extracted from CHANGELOG.md and included in GitHub releases
+- **MANIFEST.in**: Added proper packaging manifest for source distributions
+
+### 🐛 Bug Fixes
+- **Fixed GitHub Actions Build**: Made setup.py resilient to missing requirements.txt in isolated build environments
+- **Fixed Package Building**: Added fallback requirements list to ensure builds succeed in CI/CD pipelines
+- **Fixed File Handling**: Proper pathlib usage for cross-platform compatibility
+
+### 📚 Documentation
+- Enhanced release workflow documentation
+- Improved build process reliability
+
+---
+
 ## v0.2.1
 
 **Release Date:** 2025-10-22
