@@ -60,28 +60,28 @@ jobs:
         with:
           name: Release ${{ steps.get_version.outputs.VERSION }}
           body: |
-          # Release v${{ steps.get_version.outputs.VERSION }}
-          
-          ${{ steps.changelog.outputs.CHANGELOG }}
-          
-          ## Installation
-          
-          ### Windows Installer
-          Download and run `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Setup.exe` for a complete installation with start menu integration.
-          
-          ### Portable Version
-          Download `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Portable.zip`, extract, and run `LHAtoLCSC.exe` (no installation required).
-          
-          ### From Python Package
-          ```bash
-          pip install dist/lhatolcsc-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
-          ```
-          
-          ## Requirements
-          - Python 3.10 or higher (for Python package only)
-          - LCSC API credentials
-          
-          See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
+            # Release v${{ steps.get_version.outputs.VERSION }}
+
+            ${{ steps.changelog.outputs.CHANGELOG }}
+
+            ## Installation
+
+            ### Windows Installer
+            Download and run `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Setup.exe` for a complete installation with start menu integration.
+
+            ### Portable Version
+            Download `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Portable.zip`, extract, and run `LHAtoLCSC.exe` (no installation required).
+
+            ### From Python Package
+            ```bash
+            pip install dist/lhatolcsc-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
+            ```
+
+            ## Requirements
+            - Python 3.10 or higher (for Python package only)
+            - LCSC API credentials
+
+            See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
           files: |
             dist/*.whl
             dist/*.tar.gz
