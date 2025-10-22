@@ -125,25 +125,6 @@ Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 
 **Release Date:** 2025-10-22
 
-
-
----
-
-### Added
-- 
-
-### Changed
-- 
-
-### Fixed
-- 
-
----
-
-## v0.2.2
-
-**Release Date:** 2025-10-22
-
 ### ✨ New Features
 - **Automatic Release Notes**: Release notes are now automatically extracted from CHANGELOG.md and included in GitHub releases
 - **MANIFEST.in**: Added proper packaging manifest for source distributions

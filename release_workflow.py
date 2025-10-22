@@ -146,7 +146,7 @@ def update_version_in_file(file_path: Path, old_version: str, new_version: str) 
 
 
 def update_changelog(new_version: str, dry_run: bool = False) -> bool:
-    """Add new version section to CHANGELOG.md."""
+    """Validate that CHANGELOG.md has been updated with release notes."""
     changelog_path = Path('CHANGELOG.md')
     
     if not changelog_path.exists():
@@ -157,37 +157,33 @@ def update_changelog(new_version: str, dry_run: bool = False) -> bool:
         with open(changelog_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Find the [Unreleased] section
-        unreleased_match = re.search(r'## \[Unreleased\](.*?)(?=##|\Z)', content, re.DOTALL)
-        if not unreleased_match:
-            print_warning("No [Unreleased] section found in CHANGELOG.md")
+        # Check if version section exists and has content
+        version_pattern = rf'## v{re.escape(new_version)}\s*\n\*\*Release Date:\*\*[^\n]+\n\n(.*?)(?=\n## |\Z)'
+        version_match = re.search(version_pattern, content, re.DOTALL)
+        
+        if not version_match:
+            print_warning(f"No release notes found for v{new_version} in CHANGELOG.md")
+            print_info("Please add release notes manually before releasing")
+            response = input("Continue anyway? (y/n): ")
+            if response.lower() != 'y':
+                return False
             return True
         
-        # Create new version section
-        today = datetime.now().strftime('%Y-%m-%d')
-        new_section = f'''## v{new_version}
-
-**Release Date:** {today}
-
-{unreleased_match.group(1).strip()}
-
----
-
-'''
-        
-        # Insert new section after [Unreleased]
-        new_content = content.replace(
-            f"## [Unreleased]{unreleased_match.group(1)}",
-            f"## [Unreleased]\n\n### Added\n- \n\n### Changed\n- \n\n### Fixed\n- \n\n---\n\n{new_section}"
-        )
+        # Check if the section has actual content (not just empty template)
+        section_content = version_match.group(1).strip()
+        if not section_content or section_content.count('-') < 3:  # Less than 3 bullet points means mostly empty
+            print_warning(f"Release notes for v{new_version} appear to be empty or incomplete")
+            print_info("Consider adding more details about this release")
+            response = input("Continue with limited release notes? (y/n): ")
+            if response.lower() != 'y':
+                return False
         
         if not dry_run:
-            with open(changelog_path, 'w', encoding='utf-8') as f:
-                f.write(new_content)
+            print_success(f"CHANGELOG.md has release notes for v{new_version}")
         
         return True
     except Exception as e:
-        print_error(f"Failed to update CHANGELOG.md: {e}")
+        print_error(f"Failed to validate CHANGELOG.md: {e}")
         return False
 
 
