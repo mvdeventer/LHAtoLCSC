@@ -43,6 +43,71 @@ python tests/mock_lcsc_server.py
 Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 
 
+## v0.2.0
+
+**Release Date:** 2025-10-22
+
+## ✨ New Features
+
+### Professional Corporate Theme
+- **New Theme System**: Created comprehensive `CorporateTheme` class with modern navy blue/orange color scheme
+- **Consistent UI**: Applied professional styling to all windows (main, stock browser, settings, popups)
+- **Color Palette**:
+  - Primary: Navy Blue (#2c5f8d) for professional corporate appearance
+  - Accent: Warm Orange (#ff6b35) for important actions
+  - Success: Green (#27ae60) for positive actions
+  - Professional grays for backgrounds and text
+- **Enhanced Components**:
+  - Professional status bars with dark slate backgrounds
+  - Styled action buttons (Accent, Success, Danger)
+  - Modern data grids with professional headers
+  - Segoe UI fonts throughout
+  - Alternating row colors for better readability
+- **Suitable for**: Company stock management and inventory applications
+
+### Enhanced Search & Features
+- **Comprehensive Fuzzy Search**: Advanced fuzzy matching with 75% similarity threshold
+- **Multi-keyword Search**: All keywords must match for results
+- **Typo Tolerance**: Handles common typos and character variations
+- **Search Fields**: Product code, model, brand, package, description, category
+- **Unicode Cleaning**: Proper handling of Ω, ±, µ, ° characters in displays and exports
+
+### Stock Browser Improvements
+- **Lazy Loading**: Instant window open, loads data on demand
+- **10 Price Columns**: Displays all price breaks (1+, 10+, 25+, 50+, 100+, 200+, 500+, 1K+, 5K+, 10K+)
+- **Sortable Columns**: Click headers to sort by stock or price
+- **Description Column**: Shows product descriptions with search capability
+- **Theme Integration**: Professional corporate styling throughout
+
+### Mock Server Enhancements
+- **Interactive CLI**: 10 commands (help, status, reload, info, search, random, stats, categories, brands, quit)
+- **Fuzzy Search**: Server-side fuzzy matching for realistic testing
+- **104K Components**: Complete database with resistors, capacitors, inductors, ICs, sensors, connectors
+- **Product Descriptions**: All components have detailed LCSC-style descriptions
+- **Datasheet URLs**: PDF links for all products
+- **Random Pricing**: 1-10 price tiers per component (randomized from 10 possible quantities)
+
+### Documentation
+- Added `DESCRIPTION_FEATURE.md` - Product description implementation guide
+- Added `README_PRICE_UPDATER.md` - Mock database pricing update tool
+- Updated all documentation with theme details
+
+## 🐛 Bug Fixes
+- Fixed page size filter capping at 100 (now detects localhost for 1000 max)
+- Fixed sticky parameter tuples in grid layouts (changed to strings)
+- Fixed Unicode character handling in CSV exports
+- Fixed search to include productIntroEn field
+
+## 🎨 UI/UX Improvements
+- Modern corporate color scheme suitable for business applications
+- Professional fonts (Segoe UI) throughout
+- Consistent button styling (primary, accent, success, danger)
+- Enhanced status bars with better visibility
+- Professional data grid headers
+- Improved spacing and padding
+
+---
+
 ## [Unreleased]
 
 ### Added
