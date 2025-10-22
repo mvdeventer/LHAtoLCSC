@@ -111,6 +111,25 @@ Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 ## [Unreleased]
 
 ### Added
+- 
+
+### Changed
+- 
+
+### Fixed
+- 
+
+---
+
+## v0.2.1
+
+**Release Date:** 2025-10-22
+
+
+
+---
+
+### Added
 - Release automation script (`release.py`) with version detection and GitHub CLI integration
 - Automatic release notes generation from commit messages
 - Mock server credentials auto-fill button (🧪) in settings wizard
