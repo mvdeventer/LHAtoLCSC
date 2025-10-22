@@ -41,19 +41,18 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-          python -c "
-          import re
-          from pathlib import Path
-          content = Path('CHANGELOG.md').read_text(encoding='utf-8')
-          match = re.search(r'## v${VERSION}\s*\n\*\*Release Date:\*\*[^\n]+\n\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
-          print(match.group(1).strip() if match else 'See CHANGELOG.md for details.')
-          " >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          $VERSION = "${{ github.ref }}".Replace('refs/tags/v', '')
+          $content = Get-Content -Path 'CHANGELOG.md' -Raw -Encoding UTF8
+          if ($content -match "(?s)## v$VERSION\s*\n\*\*Release Date:\*\*[^\n]+\n\n(.*?)(?=\n## |\z)") {
+            $changelog = $matches[1].Trim()
+          } else {
+            $changelog = 'See CHANGELOG.md for details.'
+          }
+          "CHANGELOG<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $changelog | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
