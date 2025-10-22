@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 permissions:
   contents: write
@@ -12,70 +12,81 @@ jobs:
   release:
     name: Create Release
     runs-on: windows-latest
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller build wheel
-    
-    - name: Build Python package
-      run: python -m build
-    
-    - name: Build Windows executable
-      run: |
-        pyinstaller --name LHAtoLCSC --onefile --windowed --icon=resources/icons/app.ico src/lhatolcsc/__main__.py
-      continue-on-error: true
-    
-    - name: Get version from tag
-      id: get_version
-      shell: bash
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-    
-    - name: Generate changelog
-      id: changelog
-      shell: bash
-      run: |
-        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 @^)..@ >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-    
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller build wheel
+
+      - name: Build Python package
+        run: python -m build
+
+      - name: Build Windows installer
+        run: python build_installer.py
+        continue-on-error: true
+
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          python -c "
+          import re
+          from pathlib import Path
+          content = Path('CHANGELOG.md').read_text(encoding='utf-8')
+          match = re.search(r'## v${VERSION}\s*\n\*\*Release Date:\*\*[^\n]+\n\n(.*?)(?=\n## |\Z)', content, re.DOTALL)
+          print(match.group(1).strip() if match else 'See CHANGELOG.md for details.')
+          " >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         name: Release ${{ steps.get_version.outputs.VERSION }}
         body: |
-          ## Changes
+          # Release v${{ steps.get_version.outputs.VERSION }}
           
           ${{ steps.changelog.outputs.CHANGELOG }}
           
           ## Installation
           
-          ### From Source
+          ### Windows Installer
+          Download and run `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Setup.exe` for a complete installation with start menu integration.
+          
+          ### Portable Version
+          Download `LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Portable.zip`, extract, and run `LHAtoLCSC.exe` (no installation required).
+          
+          ### From Python Package
           ```bash
           pip install dist/lhatolcsc-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
           ```
           
-          ### Windows Executable
-          Download `LHAtoLCSC.exe` and run directly (no Python installation required).
-          
           ## Requirements
-          - Python 3.10 or higher
+          - Python 3.10 or higher (for Python package only)
           - LCSC API credentials
           
           See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
         files: |
-          dist/*
-          dist/LHAtoLCSC.exe
+          dist/*.whl
+          dist/*.tar.gz
+          installer/*.exe
+          installer/*.zip
         draft: false
         prerelease: false
       env:
