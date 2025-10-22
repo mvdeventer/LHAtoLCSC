@@ -1,10 +1,36 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+# Read README
+readme_path = Path(__file__).parent / "README.md"
+if readme_path.exists():
+    long_description = readme_path.read_text(encoding="utf-8")
+else:
+    long_description = "BOM to LCSC Part Matcher - Fuzzy search tool for electronic components"
 
-with open("requirements.txt", "r", encoding="utf-8") as fh:
-    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+# Read requirements
+requirements_path = Path(__file__).parent / "requirements.txt"
+if requirements_path.exists():
+    requirements = [
+        line.strip() 
+        for line in requirements_path.read_text(encoding="utf-8").splitlines() 
+        if line.strip() and not line.startswith("#")
+    ]
+else:
+    # Fallback to minimal requirements if file doesn't exist
+    requirements = [
+        "python-dotenv>=1.0.0",
+        "requests>=2.31.0",
+        "xlwings>=0.30.0",
+        "pandas>=2.1.0",
+        "rapidfuzz>=3.5.0",
+        "pillow>=10.1.0",
+        "pyyaml>=6.0.1",
+        "python-dateutil>=2.8.2",
+        "tqdm>=4.66.0",
+        "pydantic>=2.5.0",
+        "diskcache>=5.6.3",
+    ]
 
 setup(
     name="lhatolcsc",

@@ -1,0 +1,21 @@
+# Include requirements and documentation
+include requirements.txt
+include requirements-dev.txt
+include README.md
+include LICENSE
+include CHANGELOG.md
+include .env.example
+
+# Include all documentation
+recursive-include docs *.md
+
+# Exclude test files and build artifacts
+recursive-exclude tests *
+recursive-exclude htmlcov *
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude *.egg-info *
+exclude .gitignore
+exclude .env
+exclude pytest.ini
+exclude pyproject.toml
