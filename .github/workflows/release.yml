@@ -55,11 +55,11 @@ jobs:
           echo "" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release ${{ steps.get_version.outputs.VERSION }}
-        body: |
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
           # Release v${{ steps.get_version.outputs.VERSION }}
           
           ${{ steps.changelog.outputs.CHANGELOG }}
@@ -82,12 +82,12 @@ jobs:
           - LCSC API credentials
           
           See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
-        files: |
-          dist/*.whl
-          dist/*.tar.gz
-          installer/*.exe
-          installer/*.zip
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+            installer/*.exe
+            installer/*.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
