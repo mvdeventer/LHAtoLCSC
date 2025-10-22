@@ -157,8 +157,23 @@ a = Analysis(
         'tkinter',
         'tkinter.ttk',
         'PIL._tkinter_finder',
+        'PIL.Image',
+        'PIL.ImageTk',
         'requests',
         'dotenv',
+        'urllib3',
+        'certifi',
+        'charset_normalizer',
+        'idna',
+        'xlwings',
+        'pandas',
+        'rapidfuzz',
+        'yaml',
+        'pyyaml',
+        'dateutil',
+        'tqdm',
+        'pydantic',
+        'diskcache',
     ],
     hookspath=[],
     hooksconfig={{}},
@@ -277,6 +292,15 @@ def create_innosetup_script(version: str) -> bool:
     """Create InnoSetup installer script."""
     print_info("Creating InnoSetup installer script...")
     
+    # Check for optional files
+    has_icon = Path('icon.ico').exists()
+    has_env_example = Path('.env.example').exists()
+    has_docs = Path('docs').exists()
+    
+    icon_line = f'SetupIconFile=icon.ico' if has_icon else '; No icon.ico found'
+    env_line = f'Source: ".env.example"; DestDir: "{{{{app}}}}"; Flags: ignoreversion' if has_env_example else '; No .env.example found'
+    docs_line = f'Source: "docs\\*"; DestDir: "{{{{app}}}}\\docs"; Flags: ignoreversion recursesubdirs createallsubdirs' if has_docs else '; No docs folder found'
+    
     inno_script = f'''#define MyAppName "LHAtoLCSC"
 #define MyAppVersion "{version}"
 #define MyAppPublisher "LHAtoLCSC"
@@ -297,7 +321,7 @@ AllowNoIcons=yes
 LicenseFile=LICENSE
 OutputDir=installer
 OutputBaseFilename=LHAtoLCSC-{version}-Setup
-SetupIconFile=icon.ico
+{icon_line}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -313,8 +337,8 @@ Name: "desktopicon"; Description: "{{cm:CreateDesktopIcon}}"; GroupDescription: 
 Source: "dist\\LHAtoLCSC.exe"; DestDir: "{{app}}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{{app}}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{{app}}"; Flags: ignoreversion
-Source: ".env.example"; DestDir: "{{app}}"; Flags: ignoreversion
-Source: "docs\\*"; DestDir: "{{app}}\\docs"; Flags: ignoreversion recursesubdirs createallsubdirs
+{env_line}
+{docs_line}
 
 [Icons]
 Name: "{{group}}\\{{#MyAppName}}"; Filename: "{{app}}\\{{#MyAppExeName}}"
