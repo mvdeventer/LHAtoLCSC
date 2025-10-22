@@ -139,6 +139,7 @@ def create_pyinstaller_spec(version: str) -> bool:
     print_info("Creating PyInstaller spec file...")
     
     spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
+from pathlib import Path
 
 block_cipher = None
 
