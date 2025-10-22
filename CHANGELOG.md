@@ -125,7 +125,30 @@ Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 
 **Release Date:** 2025-10-22
 
+### ✨ New Features
+- **Release Automation**: Complete automated release workflow
+  - `release.bat` - Simple Windows wrapper for releases
+  - `release_workflow.py` - Complete automation (test → build → version → commit → push → release)
+  - `build_installer.py` - Windows installer creation with PyInstaller + InnoSetup
+- **Windows Installer**: Professional Windows installer (.exe) with InnoSetup
+  - Standalone executable (64 MB)
+  - Setup wizard with start menu integration
+  - Portable ZIP distribution
+  - Automatic dependency inclusion
 
+### 🐛 Bug Fixes
+- **Fixed PyInstaller Dependencies**: Use venv's PyInstaller to ensure all dependencies are included
+- **Fixed Module Imports**: Properly include python-dotenv, pydantic, diskcache, and all required packages
+- **Window Visibility**: Ensure main window appears in foreground on startup
+- **InnoSetup Script**: Handle optional files (icon.ico, .env.example, docs) gracefully
+
+### 🎨 UI/UX Improvements
+- Main window now forces focus and appears on top on startup
+- Better window positioning and visibility
+
+### 📚 Documentation
+- Added `BUILD_RELEASE_GUIDE.md` - Complete build and release documentation
+- Added `RELEASE_QUICKSTART.md` - Quick reference for releases
 
 ---
 

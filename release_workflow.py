@@ -253,6 +253,32 @@ def git_commit_and_tag(version: str, dry_run: bool = False) -> bool:
         return False
 
 
+def extract_changelog_section(version: str) -> str:
+    """Extract release notes for a specific version from CHANGELOG.md."""
+    changelog_path = Path('CHANGELOG.md')
+    if not changelog_path.exists():
+        return ""
+    
+    try:
+        content = changelog_path.read_text(encoding='utf-8')
+        
+        # Find the section for this version
+        version_pattern = rf'## v{re.escape(version)}\s*\n(.*?)(?=\n## v|\Z)'
+        match = re.search(version_pattern, content, re.DOTALL)
+        
+        if match:
+            section = match.group(1).strip()
+            
+            # Format for GitHub release
+            release_notes = f"# Release v{version}\n\n{section}"
+            return release_notes
+        
+        return ""
+    except Exception as e:
+        print_warning(f"Could not extract changelog: {e}")
+        return ""
+
+
 def push_to_github(version: str, dry_run: bool = False) -> bool:
     """Push commits and tags to GitHub."""
     print_info("Pushing to GitHub...")
@@ -287,7 +313,9 @@ def create_github_release(version: str, dry_run: bool = False) -> bool:
         return False
     
     # Generate release notes from CHANGELOG
-    release_notes = f"Release v{version}\n\nSee CHANGELOG.md for details."
+    release_notes = extract_changelog_section(version)
+    if not release_notes:
+        release_notes = f"Release v{version}\n\nSee CHANGELOG.md for details."
     
     try:
         if not dry_run:
