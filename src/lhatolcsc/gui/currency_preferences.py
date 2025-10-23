@@ -3,9 +3,7 @@ Currency Preferences Manager - Manages persistent currency selection.
 """
 
 import json
-import os
 from pathlib import Path
-from typing import Optional
 
 
 class CurrencyPreferencesManager:

@@ -3,8 +3,7 @@ Search History Manager - Manages persistent search history for components.
 """
 
 import json
-import os
-from typing import List, Set
+from typing import List
 from pathlib import Path
 
 
