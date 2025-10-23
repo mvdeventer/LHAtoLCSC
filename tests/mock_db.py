@@ -16,8 +16,7 @@ Usage:
 import sqlite3
 import json
 import os
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+from typing import Dict, Any, Optional
 
 
 class MockDatabase:
@@ -373,7 +372,7 @@ def convert_json_to_db(json_path: str, db_path: str = 'mock_products.db'):
         python mock_db.py
     """
     db = MockDatabase(db_path)
-    count = db.import_from_json(json_path)
+    db.import_from_json(json_path)
     stats = db.get_stats()
     
     print(f"\nDatabase Statistics:")

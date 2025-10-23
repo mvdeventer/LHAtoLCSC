@@ -13,7 +13,6 @@ Mock Credentials:
 """
 
 from flask import Flask, request, jsonify
-import hashlib
 import time
 import json
 import os
@@ -652,8 +651,8 @@ def check_auth() -> Dict[str, Any]:
     """Check authentication from query parameters (LCSC API style)."""
     # LCSC API uses query parameters: key, timestamp, nonce, signature
     api_key = request.args.get('key', '')
-    timestamp = request.args.get('timestamp', '')
-    nonce = request.args.get('nonce', '')
+    # timestamp = request.args.get('timestamp', '')  # Not used in mock
+    # nonce = request.args.get('nonce', '')  # Not used in mock
     signature = request.args.get('signature', '')
     
     # Fallback to headers for backward compatibility
@@ -702,7 +701,6 @@ def health():
 @app.route('/rest/wmsc2agent/search/product', methods=['POST', 'GET'])
 def search_products():
     """Search products endpoint with advanced fuzzy matching - matches real LCSC API."""
-    import time
     start_time = time.time()
     
     auth = check_auth()
@@ -867,7 +865,7 @@ def search_products():
     
     # Score all products
     scored_results = []
-    for code, product in db.items():
+    for product in db.values():
         score = score_product(product, keywords)
         
         # Only include products with score > 0 (all keywords must match)
@@ -1500,4 +1498,4 @@ if __name__ == '__main__':
     cmd_thread.start()
     
     # Run Flask server (use_reloader=False to prevent duplicate thread)
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
