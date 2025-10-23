@@ -30,16 +30,43 @@ server_running = True
 VALID_API_KEY = "test_api_key_12345"
 VALID_API_SECRET = "test_api_secret_67890"
 
-# Load large product database
-print("Loading product database...")
-LARGE_DB_PATH = os.path.join(os.path.dirname(__file__), 'mock_products_large.json')
-if os.path.exists(LARGE_DB_PATH):
-    with open(LARGE_DB_PATH, 'r') as f:
-        MOCK_PRODUCTS_LARGE = json.load(f)
-    print(f"Loaded {len(MOCK_PRODUCTS_LARGE)} products from {LARGE_DB_PATH}")
-else:
-    print(f"Large database not found at {LARGE_DB_PATH}, using small database")
-    MOCK_PRODUCTS_LARGE = {}
+# Try to use SQLite database first (much faster), fallback to JSON
+USE_DATABASE = False
+DB_INSTANCE = None
+MOCK_PRODUCTS_LARGE = {}
+
+try:
+    from mock_db import MockDatabase
+    DB_PATH = os.path.join(os.path.dirname(__file__), 'mock_products.db')
+    
+    if os.path.exists(DB_PATH):
+        print("Using SQLite database for fast searching...")
+        DB_INSTANCE = MockDatabase(DB_PATH)
+        stats = DB_INSTANCE.get_stats()
+        print(f"✓ Loaded {stats['total_products']:,} products from database")
+        USE_DATABASE = True
+        MOCK_PRODUCTS_LARGE = {}
+    else:
+        print(f"Database not found at {DB_PATH}")
+        print("Run 'python mock_db.py' to create database from JSON")
+        print("Falling back to JSON loading...")
+        USE_DATABASE = False
+except ImportError as e:
+    print(f"Could not import mock_db: {e}")
+    print("Falling back to JSON loading...")
+    USE_DATABASE = False
+
+# Fallback: Load large product database from JSON
+if not USE_DATABASE:
+    print("Loading product database from JSON...")
+    LARGE_DB_PATH = os.path.join(os.path.dirname(__file__), 'mock_products_large.json')
+    if os.path.exists(LARGE_DB_PATH):
+        with open(LARGE_DB_PATH, 'r') as f:
+            MOCK_PRODUCTS_LARGE = json.load(f)
+        print(f"Loaded {len(MOCK_PRODUCTS_LARGE)} products from {LARGE_DB_PATH}")
+    else:
+        print(f"Large database not found at {LARGE_DB_PATH}, using small database")
+        MOCK_PRODUCTS_LARGE = {}
 
 # Mock product database - Comprehensive LCSC components (small set for quick testing)
 MOCK_PRODUCTS = {
@@ -675,6 +702,43 @@ def health():
 @app.route('/rest/wmsc2agent/search/product', methods=['POST', 'GET'])
 def search_products():
     """Search products endpoint with advanced fuzzy matching - matches real LCSC API."""
+    import time
+    start_time = time.time()
+    
+    auth = check_auth()
+    if not auth.get("success"):
+        return jsonify(auth), 401
+    
+    # Get search parameters (LCSC uses different param names)
+    if request.method == 'POST':
+        data = request.get_json() or {}
+    else:
+        data = request.args.to_dict()
+    
+    keyword = data.get('keyword', '').strip()
+    current_page = int(data.get('current_page', 1))
+    page_size = int(data.get('page_size', 10))
+    
+    # Use database if available (much faster!)
+    if USE_DATABASE and DB_INSTANCE:
+        try:
+            result = DB_INSTANCE.search_products(keyword=keyword, page=current_page, page_size=page_size)
+            elapsed = time.time() - start_time
+            print(f"DB Search for '{keyword}' completed in {elapsed:.3f}s - {result['total']} results")
+            
+            return jsonify({
+                "success": True,
+                "code": 200,
+                "message": "Success",
+                "result": result
+            })
+        except Exception as e:
+            print(f"Database search error: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fall through to JSON search
+    
+    # Fallback to original JSON-based search
     from difflib import SequenceMatcher
     
     def fuzzy_ratio(s1, s2):
@@ -841,9 +905,13 @@ def get_product_detail(product_code: str):
     if not auth.get("success"):
         return jsonify(auth), 401
     
-    # Use large database if available, otherwise use small database
-    db = MOCK_PRODUCTS_LARGE if MOCK_PRODUCTS_LARGE else MOCK_PRODUCTS
-    product = db.get(product_code)
+    # Use database if available
+    if USE_DATABASE and DB_INSTANCE:
+        product = DB_INSTANCE.get_product(product_code)
+    else:
+        # Use large database if available, otherwise use small database
+        db = MOCK_PRODUCTS_LARGE if MOCK_PRODUCTS_LARGE else MOCK_PRODUCTS
+        product = db.get(product_code)
     
     if not product:
         return jsonify({

@@ -244,7 +244,10 @@ class LCSCClient:
         """
         logger.info("Getting categories")
         result = self._make_request("GET", self.endpoints.CATEGORY)
-        return result.get("categoryList", [])
+        # Handle both possible response formats
+        if isinstance(result, list):
+            return result
+        return result.get("result", result.get("categoryList", []))
     
     def get_brands(self) -> List[Dict[str, Any]]:
         """

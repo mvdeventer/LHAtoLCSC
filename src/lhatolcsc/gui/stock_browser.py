@@ -124,6 +124,7 @@ class StockBrowserWindow:
             "Product Code",
             "Model",
             "Brand",
+            "Category",
             "Package",
             "Description",
             "Stock",
@@ -156,6 +157,7 @@ class StockBrowserWindow:
         self.tree.column("Product Code", width=100, anchor="w")
         self.tree.column("Model", width=150, anchor="w")
         self.tree.column("Brand", width=120, anchor="w")
+        self.tree.column("Category", width=120, anchor="w")
         self.tree.column("Package", width=80, anchor="center")
         self.tree.column("Description", width=300, anchor="w")
         self.tree.column("Stock", width=80, anchor="e")
@@ -352,10 +354,14 @@ class StockBrowserWindow:
             price_5000 = f"${price_dict.get(5000, 0):.4f}" if 5000 in price_dict else ''
             price_10000 = f"${price_dict.get(10000, 0):.4f}" if 10000 in price_dict else ''
             
+            # Get category name (if available)
+            category = product.category_name if hasattr(product, 'category_name') else ''
+            
             values = (
                 product_code,
                 model,
                 brand,
+                category,
                 package,
                 description,
                 stock,
@@ -463,18 +469,38 @@ class StockBrowserWindow:
         
         # Sort based on column type
         if column == "Stock":
-            # Sort as integer
-            items.sort(key=lambda x: int(x[0]) if x[0].isdigit() else 0, reverse=self.sort_reverse)
+            # Sort as integer - INVERTED to match price behavior
+            # First click (↑) shows lowest stock, second click (↓) shows highest stock
+            items.sort(key=lambda x: int(x[0]) if x[0].isdigit() else 0, reverse=not self.sort_reverse)
         elif column in ["Price (1+)", "Price (10+)", "Price (25+)", "Price (50+)", "Price (100+)", "Price (200+)", "Price (500+)", "Price (1000+)", "Price (5000+)", "Price (10000+)"]:
-            # Sort as float (remove $ and convert), treat empty as 0
+            # Sort as float (remove $ and convert)
             def get_price(val):
                 if not val or val == '':
-                    return 999999.0  # Put empty prices at the end
+                    return None  # Use None to handle empty separately
                 try:
                     return float(val.replace('$', ''))
                 except:
-                    return 999999.0
-            items.sort(key=lambda x: get_price(x[0]), reverse=self.sort_reverse)
+                    return None
+            
+            # Separate items with prices from items without prices
+            items_with_price = []
+            items_without_price = []
+            
+            for val, item in items:
+                price = get_price(val)
+                if price is not None:
+                    items_with_price.append((price, val, item))
+                else:
+                    items_without_price.append((val, item))
+            
+            # Sort items with prices
+            # For prices: INVERT the sort direction
+            # First click (sort_reverse=False) should show LOWEST prices first
+            # Second click (sort_reverse=True) should show HIGHEST prices first
+            items_with_price.sort(key=lambda x: x[0], reverse=not self.sort_reverse)
+            
+            # Combine: items with price first, then items without price (always at the end)
+            items = [(x[1], x[2]) for x in items_with_price] + items_without_price
         else:
             # Sort as string
             items.sort(key=lambda x: x[0].lower(), reverse=self.sort_reverse)
