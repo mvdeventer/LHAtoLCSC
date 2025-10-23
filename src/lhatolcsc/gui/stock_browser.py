@@ -8,8 +8,9 @@ import logging
 from typing import Optional
 from io import BytesIO
 import requests
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 import threading
+import webbrowser
 
 from lhatolcsc.api.client import LCSCClient
 from lhatolcsc.core.config import Config
@@ -57,18 +58,43 @@ class StockBrowserWindow:
         # Search history manager
         self.search_history_manager = SearchHistoryManager()
         
+        # Window state tracking
+        self.is_fullscreen = False
+        self.is_minimized = False
+        self.normal_geometry = "1200x700"  # Default size for restoration
+        
         # Create window
         self.window = tk.Toplevel(parent)
         self.window.title(f"Stock Browser (Debug) - {config.app_name} v{config.version}")
-        self.window.geometry("2200x700")  # Wider to fit 10 price columns
-        self.window.minsize(1800, 600)
+        self.window.geometry("1200x700")  # More reasonable default size for split screen
+        self.window.minsize(800, 500)  # Allow smaller sizes for split screen
         
-        # Apply corporate theme
+        # Ensure window has ALL standard title bar controls
+        self.window.resizable(True, True)  # Enable resize handles
+        self.window.attributes('-topmost', False)  # Don't force always on top
+        
+        # Explicitly ensure title bar buttons are available (Windows-specific)
+        try:
+            # For Windows, ensure the window has proper decorations
+            self.window.attributes('-toolwindow', False)  # Show in taskbar
+            self.window.wm_attributes('-type', 'normal')  # Normal window type
+        except tk.TclError:
+            # These attributes might not be available on all platforms
+            pass
+        
+        # IMPORTANT: Don't make it transient - this can hide title bar buttons
+        # self.window.transient(parent)  # This removes Min/Max buttons!
+        
+        # Apply corporate theme AFTER window setup
         CorporateTheme.apply_to_toplevel(self.window)
         
-        # Make window modal
-        self.window.transient(parent)
-        self.window.grab_set()
+        # Don't use modal grab - it interferes with split screen and scrollbars
+        # self.window.grab_set()  # This prevents proper window interaction
+        self.window.focus_set()  # Just focus the window initially
+        
+        # Bind keyboard shortcuts for fullscreen (minimize uses standard Windows shortcut)
+        self.window.bind("<F11>", lambda e: self._toggle_fullscreen())
+        self.window.bind("<Alt-Return>", lambda e: self._toggle_fullscreen())
         
         self._create_widgets()
         # Don't auto-load products - wait for user to search
@@ -205,16 +231,18 @@ class StockBrowserWindow:
         
         search_frame.columnconfigure(1, weight=1)
         
-        # Treeview frame
+        # Treeview frame with proper grid configuration
         tree_frame = ttk.Frame(main_frame)
         tree_frame.grid(row=3, column=0, columnspan=3, sticky="nsew", pady=(0, 10))
+        tree_frame.grid_rowconfigure(0, weight=1)
+        tree_frame.grid_columnconfigure(0, weight=1)
         
-        # Scrollbars
+        # Scrollbars for treeview
         vsb = ttk.Scrollbar(tree_frame, orient="vertical")
-        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        vsb.grid(row=0, column=1, sticky="ns")
         
         hsb = ttk.Scrollbar(tree_frame, orient="horizontal")
-        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+        hsb.grid(row=1, column=0, sticky="ew")
         
         # Define columns - ALL 10 possible price breaks (no image column for speed)
         # Price column names will be updated based on selected currency
@@ -251,29 +279,30 @@ class StockBrowserWindow:
             xscrollcommand=hsb.set,
             selectmode="browse"
         )
+        self.tree.grid(row=0, column=0, sticky="nsew")
         
         vsb.config(command=self.tree.yview)
         hsb.config(command=self.tree.xview)
         
-        # Configure columns
+        # Configure columns with fixed widths - NO stretching for proper horizontal scrolling
         self.tree.column("#0", width=0, stretch=False)
-        self.tree.column("Product Code", width=100, anchor="w")
-        self.tree.column("Model", width=150, anchor="w")
-        self.tree.column("Brand", width=120, anchor="w")
-        self.tree.column("Category", width=120, anchor="w")
-        self.tree.column("Package", width=80, anchor="center")
-        self.tree.column("Description", width=300, anchor="w")
-        self.tree.column("Stock", width=80, anchor="e")
-        self.tree.column("Price (1+)", width=75, anchor="e")
-        self.tree.column("Price (10+)", width=75, anchor="e")
-        self.tree.column("Price (25+)", width=75, anchor="e")
-        self.tree.column("Price (50+)", width=75, anchor="e")
-        self.tree.column("Price (100+)", width=80, anchor="e")
-        self.tree.column("Price (200+)", width=80, anchor="e")
-        self.tree.column("Price (500+)", width=80, anchor="e")
-        self.tree.column("Price (1000+)", width=85, anchor="e")
-        self.tree.column("Price (5000+)", width=85, anchor="e")
-        self.tree.column("Price (10000+)", width=85, anchor="e")
+        self.tree.column("Product Code", width=80, anchor="w", stretch=False)
+        self.tree.column("Model", width=120, anchor="w", stretch=False)
+        self.tree.column("Brand", width=80, anchor="w", stretch=False)
+        self.tree.column("Category", width=100, anchor="w", stretch=False)
+        self.tree.column("Package", width=60, anchor="center", stretch=False)
+        self.tree.column("Description", width=200, anchor="w", stretch=False)
+        self.tree.column("Stock", width=60, anchor="e", stretch=False)
+        self.tree.column("Price (1+)", width=60, anchor="e", stretch=False)
+        self.tree.column("Price (10+)", width=60, anchor="e", stretch=False)
+        self.tree.column("Price (25+)", width=60, anchor="e", stretch=False)
+        self.tree.column("Price (50+)", width=60, anchor="e", stretch=False)
+        self.tree.column("Price (100+)", width=65, anchor="e", stretch=False)
+        self.tree.column("Price (200+)", width=65, anchor="e", stretch=False)
+        self.tree.column("Price (500+)", width=65, anchor="e", stretch=False)
+        self.tree.column("Price (1000+)", width=70, anchor="e", stretch=False)
+        self.tree.column("Price (5000+)", width=70, anchor="e", stretch=False)
+        self.tree.column("Price (10000+)", width=70, anchor="e", stretch=False)
         
         # Configure headings with sorting
         for col in columns:
@@ -289,10 +318,12 @@ class StockBrowserWindow:
             else:
                 self.tree.heading(col, text=col, anchor="center")
         
-        self.tree.pack(fill=tk.BOTH, expand=True)
-        
         # Bind double-click to show details
-        self.tree.bind('<Double-Button-1>', self._show_details)
+        self.tree.bind("<Double-1>", self._on_item_double_click)
+        
+        # Bind mouse wheel for horizontal scrolling (Shift+Wheel)
+        self.tree.bind("<Shift-MouseWheel>", self._on_horizontal_mousewheel)
+        self.tree.bind("<Control-MouseWheel>", self._on_horizontal_mousewheel)
         
         # Pagination frame
         pagination_frame = ttk.Frame(main_frame)
@@ -336,18 +367,43 @@ class StockBrowserWindow:
         status_bar = CorporateTheme.create_status_bar(main_frame, self.status_var)
         status_bar.grid(row=5, column=0, columnspan=3, sticky="ew")
         
-        # Buttons frame
+        # Buttons frame with better spacing
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=6, column=0, columnspan=3, pady=(10, 0))
+        button_frame.grid(row=6, column=0, columnspan=3, pady=(15, 10), 
+                         sticky="ew")
         
-        ttk.Button(button_frame, text="List All Stock", command=self._list_all_stock, style="Accent.TButton").pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Refresh", command=self._load_products).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Export to CSV", command=self._export_csv, style="Success.TButton").pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Close", command=self.window.destroy).pack(side=tk.RIGHT, padx=5)
+        # Configure button frame to expand
+        button_frame.columnconfigure(1, weight=1)
+        
+        # Action buttons
+        ttk.Button(button_frame, text="📋 List All Stock", 
+                  command=self._list_all_stock, 
+                  style="Accent.TButton").pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="🔄 Refresh", 
+                  command=self._load_products).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="💾 Export CSV", 
+                  command=self._export_csv, 
+                  style="Success.TButton").pack(side=tk.LEFT, padx=5)
+        
+        # Info label for window controls (right side)
+        info_label = ttk.Label(button_frame, 
+                              text="💡 F11=Fullscreen | Standard title bar for minimize/maximize",
+                              foreground="gray")
+        info_label.pack(side=tk.RIGHT, padx=10)
         
         # Configure grid weights
         main_frame.columnconfigure(0, weight=1)
         main_frame.rowconfigure(3, weight=1)
+    
+    def _on_horizontal_mousewheel(self, event):
+        """Handle horizontal mouse wheel scrolling."""
+        # Scroll horizontally when Shift or Ctrl is held (faster scroll)
+        scroll_amount = int(-1 * (event.delta / 120)) * 3  # 3x faster scrolling
+        self.tree.xview_scroll(scroll_amount, "units")
+    
+    def _on_item_double_click(self, event):
+        """Handle double-click on tree item to show product details."""
+        self._show_details(event)
     
     def _load_products(self, keyword: Optional[str] = None):
         """Load products from API."""
@@ -386,10 +442,8 @@ class StockBrowserWindow:
             logger.info(f"Loaded {len(self.products)} products from mock server")
                 
         except Exception as e:
-            # Temporarily release grab for error dialog
-            self.window.grab_release()
+            # Show error dialog (no modal grab needed)
             messagebox.showerror("Error", f"Failed to load products:\n{str(e)}")
-            self.window.grab_set()
             self.status_var.set("Error loading products")
             logger.error(f"Failed to load products: {e}", exc_info=True)
     
@@ -586,10 +640,8 @@ class StockBrowserWindow:
             logger.info(f"Listed all stock: {total} total products, showing page {self.current_page}/{self.total_pages}")
                 
         except Exception as e:
-            # Temporarily release grab for error dialog
-            self.window.grab_release()
+            # Show error dialog (no modal grab needed)
             messagebox.showerror("Error", f"Failed to list all stock:\n{str(e)}")
-            self.window.grab_set()
             self.status_var.set("Error listing stock")
             logger.error(f"Failed to list all stock: {e}", exc_info=True)
     
@@ -841,8 +893,9 @@ Pre-sale: {'Yes' if product.is_pre_sale else 'No'}
         for tier in product.price_tiers:
             details_text += f"{tier.quantity}+: ${tier.unit_price:.4f} {tier.currency}\n"
         
-        if product.datasheet_url:
-            details_text += f"\n=== Links ===\nDatasheet: {product.datasheet_url}\n"
+        # Remove the datasheet from text - we'll add it as an icon below
+        # if product.datasheet_url:
+        #     details_text += f"\n=== Links ===\nDatasheet: {product.datasheet_url}\n"
         
         # Show text details - calculate height based on content
         lines = details_text.strip().count('\n') + 1
@@ -852,6 +905,43 @@ Pre-sale: {'Yes' if product.is_pre_sale else 'No'}
         text_widget.insert("1.0", details_text.strip())
         text_widget.config(state=tk.DISABLED)
         text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Add PDF icon for datasheet if available
+        if product.datasheet_url:
+            datasheet_frame = ttk.Frame(main_frame)
+            datasheet_frame.pack(fill=tk.X, padx=10, pady=5)
+            
+            ttk.Label(datasheet_frame, text="Datasheet:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 10))
+            
+            # Create PDF icon button
+            try:
+                pdf_icon = self._create_pdf_icon(24)
+                # Keep reference to prevent garbage collection
+                details_window.pdf_icon = pdf_icon
+                
+                pdf_button = tk.Button(
+                    datasheet_frame, 
+                    image=pdf_icon, 
+                    command=lambda: self._open_datasheet(product.datasheet_url),
+                    relief=tk.FLAT,
+                    bg=main_frame.cget('bg'),
+                    activebackground=main_frame.cget('bg'),
+                    borderwidth=0,
+                    cursor='hand2'
+                )
+                pdf_button.pack(side=tk.LEFT, padx=(0, 10))
+                
+                # Add tooltip text
+                url_label = ttk.Label(datasheet_frame, text="Click PDF icon to open datasheet", 
+                                    foreground="#666", font=('Arial', 8))
+                url_label.pack(side=tk.LEFT)
+                
+            except Exception as e:
+                # Fallback to text link if icon creation fails
+                link_label = ttk.Label(datasheet_frame, text=f"Open Datasheet", 
+                                     foreground="blue", cursor="hand2")
+                link_label.pack(side=tk.LEFT)
+                link_label.bind("<Button-1>", lambda e: self._open_datasheet(product.datasheet_url))
         
         # Show image if available
         if product.image_url:
@@ -881,6 +971,46 @@ Pre-sale: {'Yes' if product.is_pre_sale else 'No'}
         # Update window to calculate size, then resize to fit content
         details_window.update_idletasks()
         details_window.geometry("")  # Auto-size to fit content
+    
+    def _create_pdf_icon(self, size=32):
+        """Create a simple PDF icon using PIL."""
+        # Create a simple PDF icon
+        img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
+        
+        # Draw PDF icon background (red rectangle)
+        draw.rectangle([2, 2, size-2, size-2], fill='#DC143C', outline='#8B0000', width=2)
+        
+        # Draw "PDF" text (simplified)
+        try:
+            # Try to use a built-in font, fallback to default if not available
+            from PIL import ImageFont
+            try:
+                font = ImageFont.truetype("arial.ttf", size//4)
+            except:
+                font = ImageFont.load_default()
+            
+            # Calculate text position to center it
+            text = "PDF"
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            x = (size - text_width) // 2
+            y = (size - text_height) // 2
+            
+            draw.text((x, y), text, fill='white', font=font)
+        except:
+            # Fallback: draw simple text
+            draw.text((size//4, size//3), "PDF", fill='white')
+        
+        return ImageTk.PhotoImage(img)
+    
+    def _open_datasheet(self, url):
+        """Open datasheet URL in the default web browser."""
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open datasheet:\n{str(e)}")
     
     def _export_csv(self):
         """Export products to CSV."""
@@ -973,3 +1103,75 @@ Pre-sale: {'Yes' if product.is_pre_sale else 'No'}
         except Exception as e:
             messagebox.showerror("Export Failed", f"Failed to export CSV:\n{str(e)}")
             logger.error(f"Failed to export CSV: {e}", exc_info=True)
+
+    def _minimize_window(self):
+        """Minimize the window."""
+        try:
+            # Store current geometry if not already stored
+            if not self.is_minimized and not self.is_fullscreen:
+                self.normal_geometry = self.window.geometry()
+            
+            # No modal behavior to remove - just minimize
+            # self.window.grab_release()
+            # self.window.transient(None)
+            
+            # Minimize the window
+            self.window.iconify()
+            self.is_minimized = True
+            
+            # Bind to restore event
+            self.window.bind('<Map>', self._on_restore)
+            
+        except Exception as e:
+            logger.error(f"Failed to minimize window: {e}", exc_info=True)
+
+    def _on_restore(self, event=None):
+        """Handle window restore from minimize."""
+        try:
+            if self.is_minimized:
+                self.is_minimized = False
+                # Don't restore modal behavior - keep window interactive
+                # self.window.transient(self.parent)
+                # self.window.grab_set()
+                # Unbind the restore event
+                self.window.unbind('<Map>')
+        except Exception as e:
+            logger.error(f"Failed to restore window: {e}", exc_info=True)
+
+    def _toggle_fullscreen(self):
+        """Toggle fullscreen mode."""
+        try:
+            if self.is_fullscreen:
+                # Exit fullscreen
+                self.window.attributes('-fullscreen', False)
+                
+                # Restore the exact geometry that was stored
+                if self.normal_geometry:
+                    self.window.geometry(self.normal_geometry)
+                    # Show restoration info in status
+                    self.status_var.set(f"✅ Restored geometry: {self.normal_geometry}")
+                    # Schedule clearing the message after 3 seconds
+                    self.window.after(3000, lambda: self.status_var.set("Ready"))
+                    
+                self.is_fullscreen = False
+                
+                # Don't restore modal behavior - keep window interactive for split screen
+                # self.window.transient(self.parent) 
+                # self.window.grab_set()
+            else:
+                # Enter fullscreen
+                # Store current complete geometry (size + position)
+                self.normal_geometry = self.window.geometry()
+                # Show stored geometry in status
+                self.status_var.set(f"Entering fullscreen. Stored geometry: {self.normal_geometry}")
+                
+                # Don't use modal behavior - keep window interactive
+                # self.window.grab_release()
+                # self.window.transient(None)
+                
+                # Set fullscreen
+                self.window.attributes('-fullscreen', True)
+                self.is_fullscreen = True
+                
+        except Exception as e:
+            logger.error(f"Failed to toggle fullscreen: {e}", exc_info=True)

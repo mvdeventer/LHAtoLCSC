@@ -101,6 +101,18 @@ chore: Update dependencies
 
 ## Testing
 
+### Test File Organization
+
+**Important:** All test-related files must be placed in the `tests/` directory:
+
+- `tests/test_*.py` - Unit and integration tests
+- `tests/debug_*.py` - Debug utilities and test scripts  
+- `tests/verify_*.py` - Verification and validation scripts
+- `tests/inspect_*.py` - Database and data inspection tools
+- `tests/mock_*.py` - Mock server and test data utilities
+
+**Never create test files in the root directory.** This maintains a clean project structure.
+
 ### Running Tests
 
 ```bash

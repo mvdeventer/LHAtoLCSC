@@ -132,6 +132,18 @@ pytest -v
 pytest --cov=src --cov-report=term-missing
 ```
 
+### Test Organization
+
+All test files are organized in the `tests/` directory:
+
+- `tests/test_*.py` - Unit and integration tests
+- `tests/debug_*.py` - Debug utilities and test scripts  
+- `tests/verify_*.py` - Verification and validation scripts
+- `tests/inspect_*.py` - Database and data inspection tools
+- `tests/mock_*.py` - Mock server and test data utilities
+
+**Note:** All new test files should be created in the `tests/` directory to maintain organization.
+
 ## 📋 LCSC API Overview
 
 LHAtoLCSC uses the following LCSC API endpoints:
