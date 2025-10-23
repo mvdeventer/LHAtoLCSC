@@ -1,5 +1,5 @@
 #define MyAppName "LHAtoLCSC"
-#define MyAppVersion "0.2.2"
+#define MyAppVersion "0.2.3"
 #define MyAppPublisher "LHAtoLCSC"
 #define MyAppURL "https://github.com/mvdeventer/LHAtoLCSC"
 #define MyAppExeName "LHAtoLCSC.exe"
@@ -17,7 +17,7 @@ DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 LicenseFile=LICENSE
 OutputDir=installer
-OutputBaseFilename=LHAtoLCSC-0.2.2-Setup
+OutputBaseFilename=LHAtoLCSC-0.2.3-Setup
 ; No icon.ico found
 Compression=lzma
 SolidCompression=yes

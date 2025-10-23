@@ -108,16 +108,33 @@ Then use the **🧪 Use Mock Server Credentials** button in the settings dialog.
 
 ---
 
+## v0.2.3
+
+**Release Date:** 2025-10-23
+
+### 🐛 Bug Fixes
+- **Enhanced API Client**: Improved API client resilience and error handling
+- **Stock Browser Improvements**: Fixed display issues and enhanced functionality
+- **Mock Server Updates**: Updated mock LCSC server with improved data handling
+
+### 🧪 Testing
+- **Comprehensive Test Suite**: Added complete test suite for API categories and endpoints
+- **Database Integration Tests**: Added tests for category verification and database operations
+- **Category Tree Testing**: Added category tree JSON file and related test scripts
+- **Performance Testing**: Added search performance tests
+- **Fuzz Testing**: Added fuzzy search test validation
+- **Integration Scripts**: Added various verification and mock data generation scripts
+
 ## [Unreleased]
 
 ### Added
-- 
+-
 
 ### Changed
-- 
+-
 
 ### Fixed
-- 
+-
 
 ---
 
