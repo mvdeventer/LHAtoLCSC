@@ -93,8 +93,13 @@ def check_requirements() -> bool:
         print_success(f"PyInstaller is installed (venv)")
     else:
         try:
-            subprocess.run(['pyinstaller', '--version'], capture_output=True, check=True)
-            print_success("PyInstaller is installed (system)")
+            # Try both direct command and module form
+            try:
+                subprocess.run(['pyinstaller', '--version'], capture_output=True, check=True)
+                print_success("PyInstaller is installed (system)")
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                subprocess.run([sys.executable, '-m', 'PyInstaller', '--version'], capture_output=True, check=True)
+                print_success("PyInstaller is installed (module)")
         except (subprocess.CalledProcessError, FileNotFoundError):
             print_error("PyInstaller not found. Install with: pip install pyinstaller")
             return False
@@ -286,7 +291,12 @@ def build_executable() -> bool:
     if venv_pyinstaller.exists():
         cmd = [str(venv_pyinstaller), '--clean', '--noconfirm', 'LHAtoLCSC.spec']
     else:
-        cmd = ['pyinstaller', '--clean', '--noconfirm', 'LHAtoLCSC.spec']
+        # Try direct command first, then module form
+        try:
+            subprocess.run(['pyinstaller', '--version'], capture_output=True, check=True)
+            cmd = ['pyinstaller', '--clean', '--noconfirm', 'LHAtoLCSC.spec']
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            cmd = [sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm', 'LHAtoLCSC.spec']
     
     if not run_command(cmd):
         return False
