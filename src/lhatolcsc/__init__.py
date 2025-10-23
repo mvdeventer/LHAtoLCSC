@@ -5,7 +5,7 @@ A professional desktop application for matching Bill of Materials components
 with LCSC electronic parts using intelligent fuzzy search.
 """
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 __license__ = "MIT"
