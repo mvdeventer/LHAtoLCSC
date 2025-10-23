@@ -164,6 +164,8 @@ a = Analysis(
     hiddenimports=[
         'tkinter',
         'tkinter.ttk',
+        'tkinter.messagebox',
+        'tkinter.filedialog',
         'PIL._tkinter_finder',
         'PIL.Image',
         'PIL.ImageTk',
@@ -187,6 +189,10 @@ a = Analysis(
         'dotenv.main',
         'dotenv.parser',
         'dotenv.variables',
+        # logging imports
+        'logging',
+        'logging.handlers',
+        'logging.config',
     ],
     hookspath=[],
     hooksconfig={{}},
