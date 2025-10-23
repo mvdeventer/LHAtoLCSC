@@ -6,14 +6,15 @@ readme_path = Path(__file__).parent / "README.md"
 if readme_path.exists():
     long_description = readme_path.read_text(encoding="utf-8")
 else:
-    long_description = "BOM to LCSC Part Matcher - Fuzzy search tool for electronic components"
+    long_description = ("BOM to LCSC Part Matcher - Fuzzy search tool for "
+                        "electronic components")
 
 # Read requirements
 requirements_path = Path(__file__).parent / "requirements.txt"
 if requirements_path.exists():
     requirements = [
-        line.strip() 
-        for line in requirements_path.read_text(encoding="utf-8").splitlines() 
+        line.strip()
+        for line in requirements_path.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.startswith("#")
     ]
 else:

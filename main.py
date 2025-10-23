@@ -15,15 +15,15 @@ def main():
     """Run the LHAtoLCSC application."""
     # Get the project root directory
     project_root = Path(__file__).parent.resolve()
-    
+
     # Add src directory to Python path
     src_path = project_root / "src"
     if str(src_path) not in sys.path:
         sys.path.insert(0, str(src_path))
-    
+
     # Change to project root directory
     os.chdir(project_root)
-    
+
     try:
         # Import and run the application
         from lhatolcsc.__main__ import main as app_main

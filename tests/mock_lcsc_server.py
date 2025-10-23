@@ -37,7 +37,7 @@ MOCK_PRODUCTS_LARGE = {}
 try:
     from mock_db import MockDatabase
     DB_PATH = os.path.join(os.path.dirname(__file__), 'mock_products.db')
-    
+
     if os.path.exists(DB_PATH):
         print("Using SQLite database for fast searching...")
         DB_INSTANCE = MockDatabase(DB_PATH)
@@ -133,7 +133,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Power", "paramValue": "1/10W"}
         ]
     },
-    
+
     # Capacitors - Ceramic
     "C15849": {
         "productCode": "C15849",
@@ -198,7 +198,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Tolerance", "paramValue": "±5%"}
         ]
     },
-    
+
     # Capacitors - Electrolytic
     "C134502": {
         "productCode": "C134502",
@@ -222,7 +222,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "ESR", "paramValue": "1.5Ω@100kHz"}
         ]
     },
-    
+
     # Microcontrollers
     "C2040": {
         "productCode": "C2040",
@@ -289,7 +289,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Bluetooth", "paramValue": "v4.2 BR/EDR and BLE"}
         ]
     },
-    
+
     # LEDs
     "C72041": {
         "productCode": "C72041",
@@ -335,7 +335,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Luminous Intensity", "paramValue": "45mcd"}
         ]
     },
-    
+
     # Diodes
     "C81598": {
         "productCode": "C81598",
@@ -381,7 +381,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Forward Voltage", "paramValue": "0.5V@3A"}
         ]
     },
-    
+
     # Transistors - MOSFETs
     "C20917": {
         "productCode": "C20917",
@@ -427,7 +427,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "RDS(on)", "paramValue": "27mΩ@10V"}
         ]
     },
-    
+
     # Voltage Regulators
     "C5446": {
         "productCode": "C5446",
@@ -473,7 +473,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Dropout Voltage", "paramValue": "1.3V@1A"}
         ]
     },
-    
+
     # Crystals & Oscillators
     "C9002": {
         "productCode": "C9002",
@@ -519,7 +519,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Operating Temperature", "paramValue": "-40°C ~ 85°C"}
         ]
     },
-    
+
     # Connectors
     "C16214": {
         "productCode": "C16214",
@@ -565,7 +565,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Mounting", "paramValue": "Surface Mount"}
         ]
     },
-    
+
     # Op-Amps
     "C7950": {
         "productCode": "C7950",
@@ -589,7 +589,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "Slew Rate", "paramValue": "0.3V/µs"}
         ]
     },
-    
+
     # Inductors
     "C1017": {
         "productCode": "C1017",
@@ -613,7 +613,7 @@ MOCK_PRODUCTS = {
             {"paramCode": "DCR", "paramValue": "0.8Ω"}
         ]
     },
-    
+
     # Buttons & Switches
     "C318884": {
         "productCode": "C318884",
@@ -654,11 +654,11 @@ def check_auth() -> Dict[str, Any]:
     # timestamp = request.args.get('timestamp', '')  # Not used in mock
     # nonce = request.args.get('nonce', '')  # Not used in mock
     signature = request.args.get('signature', '')
-    
+
     # Fallback to headers for backward compatibility
     if not api_key:
         api_key = request.headers.get('X-API-KEY', '')
-    
+
     if not api_key:
         return {
             "success": False,
@@ -666,7 +666,7 @@ def check_auth() -> Dict[str, Any]:
             "message": "Missing API key",
             "result": None
         }
-    
+
     if api_key != VALID_API_KEY:
         return {
             "success": False,
@@ -674,7 +674,7 @@ def check_auth() -> Dict[str, Any]:
             "message": "Invalid API key",
             "result": None
         }
-    
+
     # For mock server, we accept any signature as long as key is valid
     # In production, you'd verify: SHA1(key + secret + timestamp + nonce)
     if not signature:
@@ -684,7 +684,7 @@ def check_auth() -> Dict[str, Any]:
             "message": "Missing signature",
             "result": None
         }
-    
+
     return {"success": True}
 
 
@@ -702,28 +702,28 @@ def health():
 def search_products():
     """Search products endpoint with advanced fuzzy matching - matches real LCSC API."""
     start_time = time.time()
-    
+
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     # Get search parameters (LCSC uses different param names)
     if request.method == 'POST':
         data = request.get_json() or {}
     else:
         data = request.args.to_dict()
-    
+
     keyword = data.get('keyword', '').strip()
     current_page = int(data.get('current_page', 1))
     page_size = int(data.get('page_size', 10))
-    
+
     # Use database if available (much faster!)
     if USE_DATABASE and DB_INSTANCE:
         try:
             result = DB_INSTANCE.search_products(keyword=keyword, page=current_page, page_size=page_size)
             elapsed = time.time() - start_time
             print(f"DB Search for '{keyword}' completed in {elapsed:.3f}s - {result['total']} results")
-            
+
             return jsonify({
                 "success": True,
                 "code": 200,
@@ -735,14 +735,14 @@ def search_products():
             import traceback
             traceback.print_exc()
             # Fall through to JSON search
-    
+
     # Fallback to original JSON-based search
     from difflib import SequenceMatcher
-    
+
     def fuzzy_ratio(s1, s2):
         """Calculate similarity ratio between two strings (0.0 to 1.0)."""
         return SequenceMatcher(None, s1.lower(), s2.lower()).ratio()
-    
+
     def normalize_text(text):
         """Normalize text for better searching."""
         text = str(text).lower()
@@ -756,7 +756,7 @@ def search_products():
         # Remove extra whitespace
         text = ' '.join(text.split())
         return text
-    
+
     def score_product(product, keywords):
         """Score a product against search keywords using fuzzy matching."""
         # Extract all searchable fields
@@ -769,20 +769,20 @@ def search_products():
             'intro': product.get('productIntroEn', ''),
             'category': product.get('parentCatalogName', ''),
         }
-        
+
         # Normalize all fields
         normalized_fields = {k: normalize_text(v) for k, v in fields.items()}
-        
+
         # Combine all text for full-text search
         combined_text = ' '.join(normalized_fields.values())
-        
+
         total_score = 0.0
         keyword_matches = 0
-        
+
         for keyword in keywords:
             keyword = normalize_text(keyword)
             best_field_score = 0.0
-            
+
             # Check exact substring match first (highest priority)
             if keyword in combined_text:
                 best_field_score = 1.0
@@ -792,7 +792,7 @@ def search_products():
                 for field_name, field_value in normalized_fields.items():
                     if not field_value:
                         continue
-                    
+
                     # Check if keyword is substring
                     if keyword in field_value:
                         field_score = 1.0
@@ -802,7 +802,7 @@ def search_products():
                         if len(keyword) >= 4 and len(field_value) <= 100:
                             # Fuzzy match the whole field
                             field_score = fuzzy_ratio(keyword, field_value)
-                            
+
                             # Also try fuzzy matching against individual words in the field
                             words = field_value.split()
                             for word in words:
@@ -813,76 +813,76 @@ def search_products():
                                         field_score = word_score
                         else:
                             field_score = 0.0
-                    
+
                     # Weight certain fields higher
                     if field_name in ['code', 'model']:
                         field_score *= 1.5  # Boost code and model matches
                     elif field_name in ['name', 'brand']:
                         field_score *= 1.2  # Boost name and brand matches
-                    
+
                     if field_score > best_field_score:
                         best_field_score = field_score
-                
+
                 # Only count if above threshold (0.75 = 75% similarity for fuzzy)
                 if best_field_score >= 0.75:
                     keyword_matches += 1
-            
+
             total_score += best_field_score
-        
+
         # Calculate final score
         if not keywords:
             return 1.0  # Empty search matches all
-        
+
         # Average score across all keywords, with bonus for matching all keywords
         avg_score = total_score / len(keywords)
         completeness_bonus = keyword_matches / len(keywords)
-        
+
         # Must match ALL keywords to be included
         if keyword_matches < len(keywords):
             return 0.0
-        
+
         return (avg_score * 0.7) + (completeness_bonus * 0.3)
-    
+
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     # Get search parameters (LCSC uses different param names)
     if request.method == 'POST':
         data = request.get_json() or {}
     else:
         data = request.args.to_dict()
-    
+
     keyword = data.get('keyword', '').strip()
     current_page = int(data.get('current_page', 1))
     page_size = int(data.get('page_size', 10))
-    
+
     # Use large database if available, otherwise use small database
     db = MOCK_PRODUCTS_LARGE if MOCK_PRODUCTS_LARGE else MOCK_PRODUCTS
-    
+
     # Split keyword into tokens for multi-word search
     keywords = keyword.split() if keyword else []
-    
+
     # Score all products
     scored_results = []
     for product in db.values():
         score = score_product(product, keywords)
-        
+
         # Only include products with score > 0 (all keywords must match)
         if score > 0:
             scored_results.append((score, product))
-    
+
     # Sort by score (highest first)
     scored_results.sort(reverse=True, key=lambda x: x[0])
-    
+
     # Extract just the products (drop scores)
     results = [product for score, product in scored_results]
-    
+
     # Paginate
     start = (current_page - 1) * page_size
     end = start + page_size
     paginated = results[start:end]
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -902,7 +902,7 @@ def get_product_detail(product_code: str):
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     # Use database if available
     if USE_DATABASE and DB_INSTANCE:
         product = DB_INSTANCE.get_product(product_code)
@@ -910,7 +910,7 @@ def get_product_detail(product_code: str):
         # Use large database if available, otherwise use small database
         db = MOCK_PRODUCTS_LARGE if MOCK_PRODUCTS_LARGE else MOCK_PRODUCTS
         product = db.get(product_code)
-    
+
     if not product:
         return jsonify({
             "success": False,
@@ -918,7 +918,7 @@ def get_product_detail(product_code: str):
             "message": f"Product {product_code} not found",
             "result": None
         }), 404
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -933,7 +933,7 @@ def get_category_tree():
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     categories = [
         {
             "categoryId": "1",
@@ -949,8 +949,18 @@ def get_category_tree():
             "categoryName": "Capacitors",
             "parentId": "0",
             "children": [
-                {"categoryId": "201", "categoryName": "Multilayer Ceramic Capacitors MLCC - SMD/SMT", "parentId": "2", "children": []},
-                {"categoryId": "202", "categoryName": "Aluminum Electrolytic Capacitors", "parentId": "2", "children": []}
+                {
+                    "categoryId": "201",
+                    "categoryName": "Multilayer Ceramic Capacitors MLCC - SMD/SMT",
+                    "parentId": "2",
+                    "children": []
+                },
+                {
+                    "categoryId": "202",
+                    "categoryName": "Aluminum Electrolytic Capacitors",
+                    "parentId": "2",
+                    "children": []
+                }
             ]
         },
         {
@@ -963,7 +973,7 @@ def get_category_tree():
             ]
         }
     ]
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -978,7 +988,7 @@ def get_brands():
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     brands = [
         {"brandId": "1", "brandName": "UNI-ROYAL(Uniroyal Elec)"},
         {"brandId": "2", "brandName": "SAMSUNG"},
@@ -986,7 +996,7 @@ def get_brands():
         {"brandId": "4", "brandName": "Texas Instruments"},
         {"brandId": "5", "brandName": "NXP"},
     ]
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -1014,18 +1024,18 @@ def batch_products():
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     data = request.get_json() or {}
     product_codes = data.get('productCodes', [])
-    
+
     # Use large database if available, otherwise use small database
     db = MOCK_PRODUCTS_LARGE if MOCK_PRODUCTS_LARGE else MOCK_PRODUCTS
-    
+
     results = []
     for code in product_codes:
         if code in db:
             results.append(db[code])
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -1040,7 +1050,7 @@ def test_connection():
     auth = check_auth()
     if not auth.get("success"):
         return jsonify(auth), 401
-    
+
     return jsonify({
         "success": True,
         "code": 200,
@@ -1099,7 +1109,7 @@ def show_status():
     print("\n" + "=" * 70)
     print("SERVER STATUS")
     print("=" * 70)
-    print(f"Server URL: http://localhost:5000")
+    print("Server URL: http://localhost:5000")
     print(f"Status: {'Running' if server_running else 'Stopped'}")
     print(f"\nDatabase: {len(MOCK_PRODUCTS_LARGE):,} products loaded")
     print(f"API Key: {VALID_API_KEY}")
@@ -1123,7 +1133,7 @@ def reload_database():
 
 def show_product_info(product_code):
     """Show detailed information for a product."""
-    
+
     def clean_unicode(text):
         """Clean Unicode characters for display."""
         if not text:
@@ -1131,32 +1141,32 @@ def show_product_info(product_code):
         text = str(text)
         # Replace special characters with ASCII equivalents
         text = (text
-            .replace('Ω', 'ohm').replace('Î©', 'ohm')
-            .replace('±', '+/-').replace('Â±', '+/-')
-            .replace('µ', 'u').replace('Âµ', 'u')
-            .replace('°', 'deg').replace('Â°', 'deg')
-            .replace('≤', '<=').replace('â‰¤', '<=')
-            .replace('≥', '>=').replace('â‰¥', '>=')
-            .replace('Å', 'A')
-            .replace('â€"', '-')
-            .replace('Ã—', 'x')
-        )
+                .replace('Ω', 'ohm').replace('Î©', 'ohm')
+                .replace('±', '+/-').replace('Â±', '+/-')
+                .replace('µ', 'u').replace('Âµ', 'u')
+                .replace('°', 'deg').replace('Â°', 'deg')
+                .replace('≤', '<=').replace('â‰¤', '<=')
+                .replace('≥', '>=').replace('â‰¥', '>=')
+                .replace('Å', 'A')
+                .replace('â€"', '-')
+                .replace('Ã—', 'x')
+                )
         # Remove any remaining non-ASCII characters
         text = text.encode('ascii', 'ignore').decode('ascii')
         return text
-    
+
     product_code = product_code.upper().strip()
-    
+
     # Search in large database
     product = MOCK_PRODUCTS_LARGE.get(product_code)
     if not product:
         # Try small database
         product = MOCK_PRODUCTS.get(product_code)
-    
+
     if not product:
         print(f"\n✗ Product '{product_code}' not found\n")
         return
-    
+
     print("\n" + "=" * 70)
     print(f"PRODUCT DETAILS: {product_code}")
     print("=" * 70)
@@ -1166,12 +1176,12 @@ def show_product_info(product_code):
     print(f"Package:      {clean_unicode(product.get('packageType', 'N/A'))}")
     print(f"Stock:        {int(product.get('stockNumber', 0)):,}")
     print(f"Category:     {clean_unicode(product.get('parentCatalogName', 'N/A'))}")
-    
+
     # Detailed intro
     if 'productIntroEn' in product and product['productIntroEn']:
         intro = clean_unicode(product['productIntroEn'])
         print(f"\nDetails:      {intro}")
-    
+
     # Price tiers
     if 'productPriceList' in product and product['productPriceList']:
         print("\nPrice Breaks:")
@@ -1179,26 +1189,26 @@ def show_product_info(product_code):
             qty = tier.get('startNumber', tier.get('startAmount', 0))
             price = tier.get('productPrice', 0)
             print(f"  {qty:>6}+: ${float(price):.4f}")
-    
+
     # Datasheet
     if 'pdfUrl' in product and product['pdfUrl']:
         print(f"\nDatasheet:    {product['pdfUrl']}")
-    
+
     # Image
     if 'productImages' in product and product['productImages']:
         print(f"Image URL:    {product['productImages']}")
-    
+
     print("=" * 70 + "\n")
 
 
 def cmd_search_products(keyword, limit=10):
     """Search products by keyword with strict fuzzy matching (command-line version)."""
     from difflib import SequenceMatcher
-    
+
     def fuzzy_ratio(s1, s2):
         """Calculate similarity ratio between two strings."""
         return SequenceMatcher(None, s1.lower(), s2.lower()).ratio()
-    
+
     def normalize_text(text):
         """Normalize text for better searching."""
         text = str(text).lower()
@@ -1208,10 +1218,10 @@ def cmd_search_products(keyword, limit=10):
         text = text.replace('±', '+/-').replace('â±', '+/-')
         text = ' '.join(text.split())
         return text
-    
+
     keywords = keyword.lower().split()
     results = []
-    
+
     for code, product in MOCK_PRODUCTS_LARGE.items():
         # Get all searchable fields (including productIntroEn)
         name = normalize_text(product.get('productName', ''))
@@ -1220,17 +1230,17 @@ def cmd_search_products(keyword, limit=10):
         category = normalize_text(product.get('parentCatalogName', ''))
         intro = normalize_text(product.get('productIntroEn', ''))
         code_normalized = normalize_text(code)
-        
+
         combined = f"{name} {model} {brand} {category} {intro} {code_normalized}"
-        
+
         # Check if all keywords match
         matched_keywords = 0
         total_score = 0.0
-        
+
         for kw in keywords:
             kw = normalize_text(kw)
             best_score = 0.0
-            
+
             # Exact substring match
             if kw in combined:
                 best_score = 1.0
@@ -1240,44 +1250,44 @@ def cmd_search_products(keyword, limit=10):
                 for field in [name, model, brand, category, intro, code_normalized]:
                     if not field:
                         continue
-                    
+
                     # Exact substring in field
                     if kw in field:
                         best_score = 1.0
                         break
-                    
+
                     # Fuzzy match whole field (if not too long)
                     if len(field) <= 100:
                         score = fuzzy_ratio(kw, field)
                         if score > best_score:
                             best_score = score
-                        
+
                         # Fuzzy match individual words
                         for word in field.split():
                             if len(word) >= 4 and abs(len(word) - len(kw)) <= 3:
                                 score = fuzzy_ratio(kw, word)
                                 if score > best_score:
                                     best_score = score
-                
+
                 # Must be 75% similar for fuzzy match
                 if best_score >= 0.75:
                     matched_keywords += 1
-            
+
             total_score += best_score
-        
+
         # All keywords must match
         if matched_keywords == len(keywords):
             avg_score = total_score / len(keywords) if keywords else 1.0
             results.append((avg_score, code, product))
-    
+
     # Sort by score (highest first) and limit results
     results.sort(reverse=True)
     results = results[:limit]
-    
+
     if not results:
         print(f"\n✗ No products found matching '{keyword}'\n")
         return
-    
+
     print(f"\n{len(results)} products found matching '{keyword}':")
     print("=" * 70)
     for score, code, product in results:
@@ -1295,7 +1305,7 @@ def show_random_products(count=5):
         codes = random.sample(codes, count)
     else:
         codes = codes[:count]
-    
+
     print(f"\n{len(codes)} Random Products:")
     print("=" * 70)
     for code in codes:
@@ -1310,16 +1320,16 @@ def show_database_stats():
     categories = {}
     brands = {}
     total_stock = 0
-    
+
     for product in MOCK_PRODUCTS_LARGE.values():
         cat = product.get('parentCatalogName', 'Unknown')
         categories[cat] = categories.get(cat, 0) + 1
-        
+
         brand = product.get('brandName', 'Unknown')
         brands[brand] = brands.get(brand, 0) + 1
-        
+
         total_stock += int(product.get('stockNumber', 0))
-    
+
     print("\n" + "=" * 70)
     print("DATABASE STATISTICS")
     print("=" * 70)
@@ -1327,15 +1337,15 @@ def show_database_stats():
     print(f"Total Stock:      {total_stock:,} units")
     print(f"Categories:       {len(categories)}")
     print(f"Brands:           {len(brands)}")
-    
-    print(f"\nTop 10 Categories:")
+
+    print("\nTop 10 Categories:")
     for cat, count in sorted(categories.items(), key=lambda x: x[1], reverse=True)[:10]:
         print(f"  {cat:40} {count:>6,} products")
-    
-    print(f"\nTop 10 Brands:")
+
+    print("\nTop 10 Brands:")
     for brand, count in sorted(brands.items(), key=lambda x: x[1], reverse=True)[:10]:
         print(f"  {brand:40} {count:>6,} products")
-    
+
     print("=" * 70 + "\n")
 
 
@@ -1346,7 +1356,7 @@ def list_categories():
         cat = product.get('parentCatalogName')
         if cat:
             categories.add(cat)
-    
+
     print("\n" + "=" * 70)
     print(f"PRODUCT CATEGORIES ({len(categories)} total)")
     print("=" * 70)
@@ -1362,7 +1372,7 @@ def list_brands():
         brand = product.get('brandName')
         if brand:
             brands.add(brand)
-    
+
     print("\n" + "=" * 70)
     print(f"MANUFACTURER BRANDS ({len(brands)} total)")
     print("=" * 70)
@@ -1375,69 +1385,69 @@ def command_loop():
     """Interactive command-line interface."""
     print("\nType 'help' for available commands, 'quit' to exit")
     print(">>> ", end='', flush=True)
-    
+
     while server_running:
         try:
             line = sys.stdin.readline()
             if not line:
                 time.sleep(0.1)
                 continue
-            
+
             line = line.strip()
             if not line:
                 print(">>> ", end='', flush=True)
                 continue
-            
+
             parts = line.split(maxsplit=1)
             cmd = parts[0].lower()
             arg = parts[1] if len(parts) > 1 else None
-            
+
             if cmd in ['quit', 'exit']:
                 print("\nShutting down server...")
                 os._exit(0)
-            
+
             elif cmd == 'help':
                 show_help()
-            
+
             elif cmd == 'status':
                 show_status()
-            
+
             elif cmd == 'reload':
                 reload_database()
-            
+
             elif cmd == 'info':
                 if arg:
                     show_product_info(arg)
                 else:
                     print("Usage: info <product_code>\n")
-            
+
             elif cmd == 'search':
                 if arg:
                     cmd_search_products(arg)
                 else:
                     print("Usage: search <keyword>\n")
-            
+
             elif cmd == 'random':
                 count = 5
                 if arg and arg.isdigit():
                     count = int(arg)
                 show_random_products(count)
-            
+
             elif cmd == 'stats':
                 show_database_stats()
-            
+
             elif cmd == 'categories':
                 list_categories()
-            
+
             elif cmd == 'brands':
                 list_brands()
-            
+
             else:
                 print(f"Unknown command: {cmd}")
                 print("Type 'help' for available commands\n")
-            
+
             print(">>> ", end='', flush=True)
-            
+
         except Exception as e:
             print(f"Error: {e}\n")
             print(">>> ", end='', flush=True)
@@ -1463,16 +1473,16 @@ if __name__ == '__main__':
     print("  GET  /rest/wmsc2agent/brand               - Get brands")
     print("  GET  /api/test/connection                 - Test connection")
     print()
-    
+
     # Show database stats
     if MOCK_PRODUCTS_LARGE:
         print(f"🗄️  Product Database: {len(MOCK_PRODUCTS_LARGE):,} components (LARGE DATABASE)")
         print(f"   Product codes: C100000 to C{100000 + len(MOCK_PRODUCTS_LARGE) - 1}")
-        print(f"   Categories: Resistors, Capacitors, Inductors, Crystals")
-        print(f"   Manufacturers: 10+ brands with multiple packages")
+        print("   Categories: Resistors, Capacitors, Inductors, Crystals")
+        print("   Manufacturers: 10+ brands with multiple packages")
     else:
         print(f"Mock Products Available ({len(MOCK_PRODUCTS)} components):")
-    
+
     print()
     print("Small Database Also Available (25 quick-test components):")
     print("  Resistors: C17572, C25804, C22790")
@@ -1492,10 +1502,10 @@ if __name__ == '__main__':
     print("Server starting...")
     print("=" * 60)
     print()
-    
+
     # Start command-line interface in a separate thread
     cmd_thread = threading.Thread(target=command_loop, daemon=True)
     cmd_thread.start()
-    
+
     # Run Flask server (use_reloader=False to prevent duplicate thread)
     app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
