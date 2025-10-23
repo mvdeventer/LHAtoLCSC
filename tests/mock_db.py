@@ -230,7 +230,22 @@ class MockDatabase:
             offset = (page - 1) * page_size
             cursor.execute("""
                 SELECT product_data, parent_catalog_name FROM products
-                ORDER BY product_code
+                ORDER BY
+                    -- Priority 1: Best price at highest price break (cheapest bulk price)
+                    (
+                        SELECT MIN(CAST(JSON_EXTRACT(price.value,
+                                        '$.productPrice') AS REAL))
+                        FROM JSON_EACH(product_data, '$.productPriceList') AS price
+                        WHERE CAST(JSON_EXTRACT(price.value,
+                                                '$.productPrice') AS REAL) > 0
+                        ORDER BY CAST(JSON_EXTRACT(price.value, 
+                                                   '$.endAmount') AS INTEGER) DESC
+                        LIMIT 1
+                    ) ASC,
+                    -- Priority 2: Highest stock for tie-breaking
+                    CAST(JSON_EXTRACT(product_data, '$.stockNumber') AS INTEGER) DESC,
+                    -- Priority 3: Product code for consistency
+                    product_code ASC
                 LIMIT ? OFFSET ?
             """, (page_size, offset))
             
@@ -268,13 +283,30 @@ class MockDatabase:
             cursor.execute(count_sql, params)
             total = cursor.fetchone()[0]
             
-            # Get paginated results
+            # Get paginated results with smart sorting
             offset = (page - 1) * page_size
             select_sql = f"""
                 SELECT product_data, parent_catalog_name
-                FROM products 
+                FROM products
                 WHERE {where_sql}
-                ORDER BY product_code
+                ORDER BY
+                    -- Priority 1: Best price at highest price break
+                    (
+                        SELECT MIN(CAST(JSON_EXTRACT(price.value,
+                                        '$.productPrice') AS REAL))
+                        FROM JSON_EACH(product_data, 
+                                      '$.productPriceList') AS price
+                        WHERE CAST(JSON_EXTRACT(price.value,
+                                                '$.productPrice') AS REAL) > 0
+                        ORDER BY CAST(JSON_EXTRACT(price.value,
+                                                   '$.endAmount') AS INTEGER) DESC
+                        LIMIT 1
+                    ) ASC,
+                    -- Priority 2: Highest stock for tie-breaking
+                    CAST(JSON_EXTRACT(product_data, 
+                                     '$.stockNumber') AS INTEGER) DESC,
+                    -- Priority 3: Product code for consistency
+                    product_code ASC
                 LIMIT ? OFFSET ?
             """
             params.extend([page_size, offset])

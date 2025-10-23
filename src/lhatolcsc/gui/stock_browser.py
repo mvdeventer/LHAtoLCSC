@@ -9,10 +9,14 @@ from typing import Optional
 from io import BytesIO
 import requests
 from PIL import Image, ImageTk
+import threading
 
 from lhatolcsc.api.client import LCSCClient
 from lhatolcsc.core.config import Config
 from lhatolcsc.gui.theme import CorporateTheme
+from lhatolcsc.gui.currency_converter import currency_converter
+from lhatolcsc.gui.currency_preferences import currency_preferences
+from lhatolcsc.gui.search_history import SearchHistoryManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +49,14 @@ class StockBrowserWindow:
         self.sort_column = None
         self.sort_reverse = False
         
+        # Currency conversion state
+        saved_currency = currency_preferences.get_currency()
+        self.current_currency = tk.StringVar(value=saved_currency)
+        self.currency_symbols = currency_converter.get_supported_currencies()
+        
+        # Search history manager
+        self.search_history_manager = SearchHistoryManager()
+        
         # Create window
         self.window = tk.Toplevel(parent)
         self.window.title(f"Stock Browser (Debug) - {config.app_name} v{config.version}")
@@ -60,7 +72,54 @@ class StockBrowserWindow:
         
         self._create_widgets()
         # Don't auto-load products - wait for user to search
-        self.status_var.set("Ready. Enter search term or click 'List All' to load products.")
+        status_text = "Ready. Enter search term or click 'List All' to load products."
+        self.status_var.set(status_text)
+        
+        # Initialize exchange rates in background
+        self._update_exchange_rates()
+        
+        # Initialize currency column headers after UI is created
+        self._update_price_column_headers("USD")
+
+    def _create_sort_command(self, column):
+        """Create a sort command for a column."""
+        return lambda: self._sort_by_column(column)
+
+    def _update_exchange_rates(self):
+        """Update exchange rates in background."""
+        def update_rates():
+            currency_converter.update_exchange_rates()
+            rate_info = currency_converter.get_rate_info()
+            self.rate_info_var.set(rate_info)
+        
+        threading.Thread(target=update_rates, daemon=True).start()
+
+    def _on_currency_change(self, event=None):
+        """Handle currency selection change."""
+        new_currency = self.current_currency.get()
+        
+        # Save currency preference for persistence
+        currency_preferences.set_currency(new_currency)
+        
+        # Update column headers to show new currency symbol
+        self._update_price_column_headers(new_currency)
+        
+        # Refresh the displayed prices if products are loaded
+        if self.products:
+            self._populate_tree()
+    
+    def _update_price_column_headers(self, currency_code: str):
+        """Update price column headers with currency symbol."""
+        symbol = currency_converter.get_currency_symbol(currency_code)
+        
+        # Update price column headers while preserving sort commands
+        price_quantities = [1, 10, 25, 50, 100, 200, 500, 1000, 5000, 10000]
+        for i, qty in enumerate(price_quantities):
+            col_name = f"Price ({qty}+)"
+            header_text = f"{symbol} ({qty}+)"
+            # Preserve the sort command when updating header
+            self.tree.heading(col_name, text=header_text, anchor="center",
+                              command=self._create_sort_command(col_name))
     
     def _create_widgets(self):
         """Create window widgets."""
@@ -89,22 +148,60 @@ class StockBrowserWindow:
         search_frame = ttk.LabelFrame(main_frame, text="Search", padding="10")
         search_frame.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(0, 10))
         
+        # First row: Keyword input and history
         ttk.Label(search_frame, text="Keyword:").grid(row=0, column=0, padx=(0, 5))
         
         self.search_var = tk.StringVar()
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=40)
+        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=30)
         search_entry.grid(row=0, column=1, padx=5, sticky="ew")
         search_entry.bind('<Return>', lambda e: self._search())
         
+        # Search history dropdown
+        ttk.Label(search_frame, text="History:").grid(row=0, column=2, padx=(10, 5))
+        self.history_var = tk.StringVar()
+        self.history_combo = ttk.Combobox(
+            search_frame,
+            textvariable=self.history_var,
+            width=25,
+            state="readonly"
+        )
+        self.history_combo.grid(row=0, column=3, padx=5)
+        self.history_combo.bind('<<ComboboxSelected>>', self._on_history_selected)
+        
+        # Update history dropdown with saved history
+        self._update_history_dropdown()
+        
         search_button = ttk.Button(search_frame, text="Search", command=self._search, style="Accent.TButton")
-        search_button.grid(row=0, column=2, padx=5)
+        search_button.grid(row=0, column=4, padx=5)
         
         clear_button = ttk.Button(search_frame, text="Clear", command=self._clear_search)
-        clear_button.grid(row=0, column=3, padx=5)
+        clear_button.grid(row=0, column=5, padx=5)
         
+        # Clear history button
+        clear_history_button = ttk.Button(search_frame, text="Clear History", command=self._clear_history)
+        clear_history_button.grid(row=0, column=6, padx=5)
+        
+        # Second row: Result count and currency
         self.result_count_var = tk.StringVar(value="No products loaded")
         result_label = ttk.Label(search_frame, textvariable=self.result_count_var)
-        result_label.grid(row=0, column=4, padx=10)
+        result_label.grid(row=1, column=0, columnspan=2, padx=5, sticky="w")
+        
+        # Currency selection
+        ttk.Label(search_frame, text="Currency:").grid(row=1, column=2, padx=(10, 5))
+        currency_combo = ttk.Combobox(
+            search_frame,
+            textvariable=self.current_currency,
+            values=list(self.currency_symbols.keys()),
+            width=8,
+            state="readonly"
+        )
+        currency_combo.grid(row=1, column=3, padx=5, sticky="w")
+        currency_combo.bind('<<ComboboxSelected>>', self._on_currency_change)
+        
+        # Exchange rate info
+        self.rate_info_var = tk.StringVar(value="Loading rates...")
+        rate_info_label = ttk.Label(search_frame, textvariable=self.rate_info_var, font=("Arial", 8))
+        rate_info_label.grid(row=1, column=4, columnspan=3, padx=5, sticky="w")
         
         search_frame.columnconfigure(1, weight=1)
         
@@ -120,17 +217,21 @@ class StockBrowserWindow:
         hsb.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Define columns - ALL 10 possible price breaks (no image column for speed)
-        columns = (
+        # Price column names will be updated based on selected currency
+        self.base_columns = (
             "Product Code",
-            "Model",
+            "Model", 
             "Brand",
             "Category",
             "Package",
             "Description",
-            "Stock",
+            "Stock"
+        )
+        
+        self.price_columns = (
             "Price (1+)",
             "Price (10+)",
-            "Price (25+)",
+            "Price (25+)", 
             "Price (50+)",
             "Price (100+)",
             "Price (200+)",
@@ -139,6 +240,8 @@ class StockBrowserWindow:
             "Price (5000+)",
             "Price (10000+)"
         )
+        
+        columns = self.base_columns + self.price_columns
         
         self.tree = ttk.Treeview(
             tree_frame,
@@ -176,10 +279,13 @@ class StockBrowserWindow:
         for col in columns:
             if col in ["Model", "Description"]:
                 self.tree.heading(col, text=col, anchor="w")
-            elif col in ["Stock", "Price (1+)", "Price (10+)", "Price (25+)", "Price (50+)", "Price (100+)", "Price (200+)", "Price (500+)", "Price (1000+)", "Price (5000+)", "Price (10000+)"]:
-                # Add sorting to stock and price columns
-                self.tree.heading(col, text=col, anchor="center", 
-                                command=lambda c=col: self._sort_by_column(c))
+            elif col in self.price_columns:
+                # Price columns will be updated by _update_price_column_headers
+                self.tree.heading(col, text=col, anchor="center",
+                                  command=self._create_sort_command(col))
+            elif col in ["Stock"]:
+                self.tree.heading(col, text=col, anchor="center",
+                                  command=self._create_sort_command(col))
             else:
                 self.tree.heading(col, text=col, anchor="center")
         
@@ -192,15 +298,31 @@ class StockBrowserWindow:
         pagination_frame = ttk.Frame(main_frame)
         pagination_frame.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(0, 10))
         
+        # Left side: Page info and navigation
+        left_frame = ttk.Frame(pagination_frame)
+        left_frame.pack(side=tk.LEFT)
+        
         self.page_info_var = tk.StringVar(value="Page 1 of 1")
-        ttk.Label(pagination_frame, textvariable=self.page_info_var).pack(side=tk.LEFT, padx=5)
+        ttk.Label(left_frame, textvariable=self.page_info_var).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(pagination_frame, text="◀ Previous", command=self._previous_page).pack(side=tk.LEFT, padx=5)
-        ttk.Button(pagination_frame, text="Next ▶", command=self._next_page).pack(side=tk.LEFT, padx=5)
+        ttk.Button(left_frame, text="⏮️ First", command=self._first_page).pack(side=tk.LEFT, padx=5)
+        ttk.Button(left_frame, text="◀ Previous", command=self._previous_page).pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(pagination_frame, text="Page size:").pack(side=tk.LEFT, padx=(20, 5))
+        # Page number buttons (1-5 pages ahead/behind)
+        self.page_buttons_frame = ttk.Frame(left_frame)
+        self.page_buttons_frame.pack(side=tk.LEFT, padx=10)
+        self.page_buttons = []  # Store references to page buttons
+        
+        ttk.Button(left_frame, text="Next ▶", command=self._next_page).pack(side=tk.LEFT, padx=5)
+        ttk.Button(left_frame, text="Last ⏭️", command=self._last_page).pack(side=tk.LEFT, padx=5)
+        
+        # Right side: Page size controls
+        right_frame = ttk.Frame(pagination_frame)
+        right_frame.pack(side=tk.RIGHT)
+        
+        ttk.Label(right_frame, text="Page size:").pack(side=tk.LEFT, padx=(20, 5))
         page_size_combo = ttk.Combobox(
-            pagination_frame,
+            right_frame,
             values=["10", "20", "30", "40", "50", "100"],
             width=10,
             state="readonly"
@@ -255,7 +377,7 @@ class StockBrowserWindow:
             self._populate_tree()
             
             self.result_count_var.set(f"Found {total} products")
-            self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
+            self._update_pagination_info()
             self.status_var.set(f"Loaded {len(self.products)} products (Page {self.current_page}/{self.total_pages})")
             
             # Force UI update
@@ -340,19 +462,27 @@ class StockBrowserWindow:
             
             stock = str(product.stock)
             
-            # Get prices from ALL 10 price tiers - show empty if not available
+            # Get prices from ALL 10 price tiers with currency conversion
             price_dict = {tier.quantity: tier.unit_price for tier in product.price_tiers}
+            current_currency = self.current_currency.get()
             
-            price_1 = f"${price_dict.get(1, 0):.4f}" if 1 in price_dict else ''
-            price_10 = f"${price_dict.get(10, 0):.4f}" if 10 in price_dict else ''
-            price_25 = f"${price_dict.get(25, 0):.4f}" if 25 in price_dict else ''
-            price_50 = f"${price_dict.get(50, 0):.4f}" if 50 in price_dict else ''
-            price_100 = f"${price_dict.get(100, 0):.4f}" if 100 in price_dict else ''
-            price_200 = f"${price_dict.get(200, 0):.4f}" if 200 in price_dict else ''
-            price_500 = f"${price_dict.get(500, 0):.4f}" if 500 in price_dict else ''
-            price_1000 = f"${price_dict.get(1000, 0):.4f}" if 1000 in price_dict else ''
-            price_5000 = f"${price_dict.get(5000, 0):.4f}" if 5000 in price_dict else ''
-            price_10000 = f"${price_dict.get(10000, 0):.4f}" if 10000 in price_dict else ''
+            # Convert prices to selected currency and format appropriately
+            price_quantities = [1, 10, 25, 50, 100, 200, 500,
+                                1000, 5000, 10000]
+            converted_prices = []
+            
+            for qty in price_quantities:
+                if qty in price_dict and price_dict[qty] > 0:
+                    formatted_price = currency_converter.format_price(
+                        price_dict[qty], current_currency
+                    )
+                    converted_prices.append(formatted_price)
+                else:
+                    converted_prices.append('')
+            
+            (price_1, price_10, price_25, price_50, price_100,
+             price_200, price_500, price_1000, price_5000,
+             price_10000) = converted_prices
             
             # Get category name (if available)
             category = product.category_name if hasattr(product, 'category_name') else ''
@@ -381,16 +511,48 @@ class StockBrowserWindow:
             self.tree.insert("", tk.END, values=values, tags=(product_code,))
     
     def _search(self):
-        """Search products."""
+        """Search products and add to history."""
         keyword = self.search_var.get().strip()
+        
+        # Add to search history if not empty
+        if keyword:
+            self.search_history_manager.add_search(keyword)
+            self._update_history_dropdown()
+        
         self.current_page = 1
         self._load_products(keyword=keyword if keyword else None)
     
     def _clear_search(self):
         """Clear search and reload all products."""
         self.search_var.set("")
+        self.history_var.set("")  # Clear history selection
         self.current_page = 1
         self._load_products()
+    
+    def _clear_history(self):
+        """Clear search history."""
+        self.search_history_manager.clear_history()
+        self._update_history_dropdown()
+        messagebox.showinfo("History Cleared", "Search history has been cleared.")
+    
+    def _on_history_selected(self, event=None):
+        """Handle history selection from dropdown."""
+        selected_history = self.history_var.get()
+        if selected_history:
+            # Set the search field to the selected history item
+            self.search_var.set(selected_history)
+            # Automatically perform the search
+            self._search()
+    
+    def _update_history_dropdown(self):
+        """Update the history dropdown with current search history."""
+        history = self.search_history_manager.get_history()
+        self.history_combo['values'] = history
+        
+        # Clear selection if current selection is not in history
+        current_selection = self.history_var.get()
+        if current_selection not in history:
+            self.history_var.set("")
     
     def _list_all_stock(self):
         """List all stock from mock server (no keyword filter)."""
@@ -415,7 +577,7 @@ class StockBrowserWindow:
             self._populate_tree()
             
             self.result_count_var.set(f"📦 Total: {total:,} products in stock")
-            self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
+            self._update_pagination_info()
             self.status_var.set(f"✅ Listed all stock: Showing {len(self.products)} products (Page {self.current_page}/{self.total_pages}, Total: {total:,})")
             
             # Force UI update to ensure products are visible
@@ -445,6 +607,20 @@ class StockBrowserWindow:
             keyword = self.search_var.get().strip()
             self._load_products(keyword=keyword if keyword else None)
     
+    def _first_page(self):
+        """Go to first page."""
+        if self.current_page > 1:
+            self.current_page = 1
+            keyword = self.search_var.get().strip()
+            self._load_products(keyword=keyword if keyword else None)
+    
+    def _last_page(self):
+        """Go to last page."""
+        if self.current_page < self.total_pages:
+            self.current_page = self.total_pages
+            keyword = self.search_var.get().strip()
+            self._load_products(keyword=keyword if keyword else None)
+    
     def _change_page_size(self, event):
         """Change page size."""
         combo = event.widget
@@ -454,6 +630,70 @@ class StockBrowserWindow:
         self.current_page = 1
         keyword = self.search_var.get().strip()
         self._load_products(keyword=keyword if keyword else None)
+    
+    def _create_page_buttons(self):
+        """Create page number buttons for quick navigation."""
+        # Clear existing buttons by destroying all children of the frame
+        for widget in self.page_buttons_frame.winfo_children():
+            widget.destroy()
+        self.page_buttons.clear()
+        
+        if self.total_pages <= 1:
+            return
+        
+        # Calculate which pages to show (max 5 buttons)
+        max_buttons = 5
+        
+        # Calculate the range of pages to display
+        half_range = max_buttons // 2  # 2 for max_buttons=5
+        start_page = max(1, self.current_page - half_range)
+        end_page = min(self.total_pages, self.current_page + half_range)
+        
+        # Adjust range to always show max_buttons if possible
+        if end_page - start_page + 1 < max_buttons:
+            if start_page == 1:
+                # We're at the beginning, extend to the right
+                end_page = min(self.total_pages, start_page + max_buttons - 1)
+            elif end_page == self.total_pages:
+                # We're at the end, extend to the left
+                start_page = max(1, end_page - max_buttons + 1)
+        
+        # Debug logging
+        logger.info(f"Creating page buttons: current={self.current_page}, total={self.total_pages}, range=[{start_page}-{end_page}]")
+        
+        # Create page buttons
+        # Calculate button width based on total pages to prevent truncation
+        button_width = len(str(self.total_pages))
+        
+        for page_num in range(start_page, end_page + 1):
+            button_style = "Accent.TButton" if page_num == self.current_page else "TButton"
+            
+            # Use a closure with default parameter to capture the current page_num value
+            def make_command(p):
+                return lambda: self._go_to_page(p)
+            
+            button = ttk.Button(
+                self.page_buttons_frame,
+                text=str(page_num),
+                command=make_command(page_num),
+                style=button_style,
+                width=button_width
+            )
+            button.pack(side=tk.LEFT, padx=1)
+            self.page_buttons.append(button)
+            logger.info(f"Created button for page {page_num}")
+    
+    def _go_to_page(self, page_num: int):
+        """Go to a specific page number."""
+        if 1 <= page_num <= self.total_pages and page_num != self.current_page:
+            self.current_page = page_num
+            keyword = self.search_var.get().strip()
+            self._load_products(keyword=keyword if keyword else None)
+    
+    def _update_pagination_info(self):
+        """Update pagination display after loading products."""
+        self.page_info_var.set(f"Page {self.current_page} of {self.total_pages}")
+        self._create_page_buttons()
     
     def _sort_by_column(self, column: str):
         """Sort the treeview by the specified column."""
@@ -473,13 +713,18 @@ class StockBrowserWindow:
             # First click (↑) shows lowest stock, second click (↓) shows highest stock
             items.sort(key=lambda x: int(x[0]) if x[0].isdigit() else 0, reverse=not self.sort_reverse)
         elif column in ["Price (1+)", "Price (10+)", "Price (25+)", "Price (50+)", "Price (100+)", "Price (200+)", "Price (500+)", "Price (1000+)", "Price (5000+)", "Price (10000+)"]:
-            # Sort as float (remove $ and convert)
+            # Sort as float (remove currency symbol and convert)
             def get_price(val):
                 if not val or val == '':
                     return None  # Use None to handle empty separately
                 try:
-                    return float(val.replace('$', ''))
-                except:
+                    # Remove currency symbols except decimal point
+                    import re
+                    numeric_str = re.sub(r'[^\d.-]', '', val)
+                    if numeric_str:
+                        return float(numeric_str)
+                    return None
+                except (ValueError, TypeError):
                     return None
             
             # Separate items with prices from items without prices
