@@ -137,7 +137,7 @@ pytest --cov=src --cov-report=term-missing
 All test files are organized in the `tests/` directory:
 
 - `tests/test_*.py` - Unit and integration tests
-- `tests/debug_*.py` - Debug utilities and test scripts  
+- `tests/debug_*.py` - Debug utilities and test scripts
 - `tests/verify_*.py` - Verification and validation scripts
 - `tests/inspect_*.py` - Database and data inspection tools
 - `tests/mock_*.py` - Mock server and test data utilities
@@ -172,29 +172,34 @@ Please follow [Conventional Commits](https://www.conventionalcommits.org/) for c
 This project uses automated releases with semantic versioning. To create a new release:
 
 ```bash
-# Preview the release
-python release.py patch --dry-run
+# Preview the release (dry-run mode)
+python ultimate_release.py patch --dry-run
 
-# Create a patch release (bug fixes: 0.1.0 -> 0.1.1)
-python release.py patch
+# Create a patch release (bug fixes: 0.2.6 -> 0.2.7)
+python ultimate_release.py patch
 
-# Create a minor release (new features: 0.1.0 -> 0.2.0)
-python release.py minor
+# Create a minor release (new features: 0.2.6 -> 0.3.0)
+python ultimate_release.py minor
 
-# Create a major release (breaking changes: 0.1.0 -> 1.0.0)
-python release.py major
+# Create a major release (breaking changes: 0.2.6 -> 1.0.0)
+python ultimate_release.py major
 ```
 
-The release script automatically:
-- ✅ Detects the next version number
-- ✅ Generates release notes from commits
-- ✅ Updates version in files and CHANGELOG.md
-- ✅ Creates git commit and tag
-- ✅ Pushes to GitHub and creates release
+The ultimate release script automatically:
+- ✅ **GitHub API Integration** - Detects latest releases intelligently
+- ✅ **Smart Version Calculation** - Calculates next version based on GitHub releases
+- ✅ **Multi-File Updates** - Updates version in config.py, pyproject.toml, setup.py
+- ✅ **Auto Release Notes** - Generates professional release notes from git commits
+- ✅ **GitHub Actions** - Triggers workflows and waits for installer builds
+- ✅ **Asset Verification** - Confirms Windows installer and portable ZIP uploads
+- ✅ **Safety Features** - Rollback on failure, working directory validation
+- ✅ **Professional Logging** - Beautiful colored output with detailed logging
 
-For detailed instructions, see [RELEASE.md](RELEASE.md) or [Quick Start Guide](RELEASE_QUICKSTART.md).
+For complete documentation, see [ULTIMATE_RELEASE_GUIDE.md](ULTIMATE_RELEASE_GUIDE.md).
 
-**Prerequisites:** Install [GitHub CLI](https://cli.github.com/) and authenticate with `gh auth login`
+**Prerequisites:**
+- Install dependencies: `pip install pygithub gitpython`
+- Set GitHub token: `export GITHUB_TOKEN="your_token"` or `gh auth login`
 
 ## �📝 License
 

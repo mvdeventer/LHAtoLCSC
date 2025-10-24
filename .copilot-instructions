@@ -1,0 +1,44 @@
+# Copilot Instructions for LHAtoLCSC Project
+
+## Release Process
+
+**IMPORTANT:** When asked to create a GitHub release or publish a new version:
+
+1. **Always use `ultimate_release.py`** - This is the official release script
+2. **Never use** old scripts like `release.py`, `release_workflow.py`, or `release.bat` (these have been removed)
+3. **Standard release commands:**
+   ```bash
+   # For bug fixes (patch version: 0.2.6 -> 0.2.7)
+   python ultimate_release.py patch
+
+   # For new features (minor version: 0.2.6 -> 0.3.0)
+   python ultimate_release.py minor
+
+   # For breaking changes (major version: 0.2.6 -> 1.0.0)
+   python ultimate_release.py major
+   ```
+
+4. **The ultimate_release.py script automatically:**
+   - Detects the latest GitHub release version
+   - Calculates the next version number
+   - Updates all version files (config.py, pyproject.toml, setup.py)
+   - Generates professional release notes from git commits
+   - Creates git commit and tags
+   - Pushes to GitHub
+   - Creates GitHub release
+   - Triggers GitHub Actions to build Windows installer
+   - Verifies all release assets are uploaded
+
+5. **For preview/testing:** Always use `--dry-run` flag first
+   ```bash
+   python ultimate_release.py patch --dry-run
+   ```
+
+6. **Documentation:** See [ULTIMATE_RELEASE_GUIDE.md](ULTIMATE_RELEASE_GUIDE.md) for complete details
+
+## Other Guidelines
+
+- Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
+- Run tests before committing: `pytest tests/`
+- Check code quality: `flake8` with 120-character line limit
+- All PRs require passing CI checks
