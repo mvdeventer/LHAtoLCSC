@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## v0.2.15
+**Release Date:** 2025-10-24
+
+### ✨ Features
+â€¢ feat: auto-resize stock browser columns when window is maximized
+â€¢ feat: ensure only latest version installers are released
+
+### 🐛 Bug Fixes
+â€¢ fix: add missing PIL.ImageDraw and PIL.ImageFont to PyInstaller hiddenimports
+â€¢ fix: remove Python comments from InnoSetup script template
+â€¢ fix: correct PyInstaller hooksconfig syntax in build_installer.py
+â€¢ fix: handle Unicode encoding in build_installer.py for GitHub Actions
+â€¢ fix: install InnoSetup in GitHub Actions workflow
+â€¢ fix: restore build_installer.py needed for GitHub Actions
+
+### 📝 Other Changes
+â€¢ Release v0.2.14
+â€¢ Release v0.2.13
+â€¢ Release v0.2.12
+â€¢ Release v0.2.11
+â€¢ Release v0.2.10
+â€¢ Release v0.2.9
+â€¢ Release v0.2.8
+â€¢ Release v0.2.7
+â€¢ chore: remove old release scripts and update to ultimate_release.py
+â€¢ changes
+â€¢ chore: Release v0.2.6
+â€¢ chore: Release v0.2.5
+â€¢ Fix security vulnerabilities and code quality issues
+â€¢ Fix code quality issues: remove unused imports, variables, and security warnings
+â€¢ Update version to 0.2.5 for release
+â€¢ v0.2.5: Improve horizontal scrolling speed, fix version consistency, organize tests
+â€¢ Fix PyInstaller imports for logging and tkinter modules
+â€¢ Update pyproject.toml version to 0.2.4
+â€¢ Update version to 0.2.4 and improve PyInstaller module support
+â€¢ Release 0.2.4: Enhanced pagination, currency persistence, and release automation
+
+
 ## v0.2.14
 **Release Date:** 2025-10-24
 

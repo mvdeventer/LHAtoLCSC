@@ -29,7 +29,7 @@ class Config:
 
         # Application metadata
         self.app_name = "LHAtoLCSC"
-        self.version = "0.2.14"
+        self.version = "0.2.15"
 
         # API Configuration
         self.lcsc_api_key = os.getenv("LCSC_API_KEY", "")
