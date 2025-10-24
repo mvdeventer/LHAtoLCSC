@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## v0.2.7
+**Release Date:** 2025-10-24
+
+### 📝 Other Changes
+â€¢ chore: remove old release scripts and update to ultimate_release.py
+â€¢ changes
+â€¢ chore: Release v0.2.6
+â€¢ chore: Release v0.2.5
+â€¢ Fix security vulnerabilities and code quality issues
+â€¢ Fix code quality issues: remove unused imports, variables, and security warnings
+â€¢ Update version to 0.2.5 for release
+â€¢ v0.2.5: Improve horizontal scrolling speed, fix version consistency, organize tests
+â€¢ Fix PyInstaller imports for logging and tkinter modules
+â€¢ Update pyproject.toml version to 0.2.4
+â€¢ Update version to 0.2.4 and improve PyInstaller module support
+â€¢ Release 0.2.4: Enhanced pagination, currency persistence, and release automation
+
+
 ## v0.1.0
 
 **Release Date:** 2025-10-21
