@@ -35,7 +35,7 @@ else:
 
 setup(
     name="lhatolcsc",
-    version="0.2.11",
+    version="0.2.12",
     author="Your Name",
     author_email="your.email@example.com",
     description="BOM to LCSC Part Matcher - Fuzzy search tool for electronic components",
