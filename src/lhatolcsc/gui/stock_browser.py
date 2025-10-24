@@ -99,6 +99,10 @@ class StockBrowserWindow:
         self.window.bind("<F11>", lambda e: self._toggle_fullscreen())
         self.window.bind("<Alt-Return>", lambda e: self._toggle_fullscreen())
 
+        # Bind window resize event to adjust column widths
+        self.window.bind("<Configure>", self._on_window_resize)
+        self._last_window_width = self.window.winfo_width()
+
         self._create_widgets()
         # Don't auto-load products - wait for user to search
         status_text = (
@@ -1409,6 +1413,96 @@ Pre-sale: {'Yes' if product.is_pre_sale else 'No'}
                 self.window.unbind("<Map>")
         except Exception as e:
             logger.error(f"Failed to restore window: {e}", exc_info=True)
+
+    def _on_window_resize(self, event):
+        """Handle window resize to adjust column widths proportionally."""
+        # Only handle resize events for the main window
+        if event.widget != self.window:
+            return
+
+        # Get current window width
+        current_width = event.width
+
+        # Avoid handling rapid resize events (debounce)
+        if not hasattr(self, '_last_window_width'):
+            self._last_window_width = current_width
+            return
+
+        # Only adjust if width changed significantly (more than 10 pixels)
+        if abs(current_width - self._last_window_width) < 10:
+            return
+
+        self._last_window_width = current_width
+
+        # Calculate available width for tree (subtract scrollbar and padding)
+        available_width = current_width - 50  # Account for scrollbar and padding
+
+        # Define base minimum widths for each column
+        min_widths = {
+            "Product Code": 80,
+            "Model": 120,
+            "Brand": 80,
+            "Category": 100,
+            "Package": 60,
+            "Description": 200,
+            "Stock": 60,
+            "Price (1+)": 60,
+            "Price (10+)": 60,
+            "Price (25+)": 60,
+            "Price (50+)": 60,
+            "Price (100+)": 65,
+            "Price (200+)": 65,
+            "Price (500+)": 65,
+            "Price (1000+)": 70,
+            "Price (5000+)": 70,
+            "Price (10000+)": 70,
+        }
+
+        # Calculate total minimum width needed
+        total_min_width = sum(min_widths.values())
+
+        # If we have extra space, distribute it proportionally
+        if available_width > total_min_width:
+            extra_space = available_width - total_min_width
+            
+            # Define weights for each column (how much extra space they get)
+            weights = {
+                "Product Code": 1,
+                "Model": 2,
+                "Brand": 1,
+                "Category": 1.5,
+                "Package": 0.5,
+                "Description": 3,  # Description gets most extra space
+                "Stock": 0.5,
+                "Price (1+)": 0.5,
+                "Price (10+)": 0.5,
+                "Price (25+)": 0.5,
+                "Price (50+)": 0.5,
+                "Price (100+)": 0.5,
+                "Price (200+)": 0.5,
+                "Price (500+)": 0.5,
+                "Price (1000+)": 0.5,
+                "Price (5000+)": 0.5,
+                "Price (10000+)": 0.5,
+            }
+            
+            total_weight = sum(weights.values())
+            
+            # Calculate new widths
+            for col in min_widths.keys():
+                additional = int((weights[col] / total_weight) * extra_space)
+                new_width = min_widths[col] + additional
+                try:
+                    self.tree.column(col, width=new_width)
+                except tk.TclError:
+                    pass  # Ignore errors if column doesn't exist yet
+        else:
+            # Window is too small, use minimum widths
+            for col, width in min_widths.items():
+                try:
+                    self.tree.column(col, width=width)
+                except tk.TclError:
+                    pass
 
     def _toggle_fullscreen(self):
         """Toggle fullscreen mode."""
