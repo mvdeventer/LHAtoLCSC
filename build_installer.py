@@ -196,6 +196,8 @@ a = Analysis(
         'PIL._tkinter_finder',
         'PIL.Image',
         'PIL.ImageTk',
+        'PIL.ImageDraw',
+        'PIL.ImageFont',
         'requests',
         'urllib3',
         'certifi',
