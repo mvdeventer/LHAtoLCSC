@@ -372,6 +372,9 @@ class StockBrowserWindow:
         # Bind double-click to show details
         self.tree.bind("<Double-1>", self._on_item_double_click)
 
+        # Bind right-click for context menu (copy cell)
+        self.tree.bind("<Button-3>", self._show_context_menu)
+
         # Bind mouse wheel for horizontal scrolling (Shift+Wheel)
         self.tree.bind("<Shift-MouseWheel>", self._on_horizontal_mousewheel)
         self.tree.bind("<Control-MouseWheel>", self._on_horizontal_mousewheel)
@@ -485,6 +488,80 @@ class StockBrowserWindow:
     def _on_item_double_click(self, event):
         """Handle double-click on tree item to show product details."""
         self._show_details(event)
+
+    def _show_context_menu(self, event):
+        """Show context menu on right-click to copy cell content."""
+        # Identify the clicked row and column
+        row_id = self.tree.identify_row(event.y)
+        column_id = self.tree.identify_column(event.x)
+        
+        if not row_id or not column_id:
+            return
+        
+        # Select the clicked item
+        self.tree.selection_set(row_id)
+        
+        # Get column index (column_id is like '#1', '#2', etc.)
+        try:
+            col_index = int(column_id.replace('#', '')) - 1
+        except (ValueError, AttributeError):
+            return
+        
+        # Get the column name
+        columns = list(self.tree["columns"])
+        if col_index < 0 or col_index >= len(columns):
+            return
+        
+        column_name = columns[col_index]
+        
+        # Get cell value
+        values = self.tree.item(row_id)["values"]
+        if col_index >= len(values):
+            return
+        
+        cell_value = str(values[col_index])
+        
+        # Create context menu
+        context_menu = tk.Menu(self.tree, tearoff=0)
+        context_menu.add_command(
+            label=f"Copy '{column_name}' value",
+            command=lambda: self._copy_to_clipboard(cell_value)
+        )
+        context_menu.add_separator()
+        context_menu.add_command(
+            label="Copy entire row",
+            command=lambda: self._copy_row_to_clipboard(row_id)
+        )
+        
+        # Show the menu
+        try:
+            context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            context_menu.grab_release()
+    
+    def _copy_to_clipboard(self, text):
+        """Copy text to clipboard."""
+        self.window.clipboard_clear()
+        self.window.clipboard_append(text)
+        self.status_var.set(f"✅ Copied to clipboard: {text[:50]}{'...' if len(text) > 50 else ''}")
+        # Clear status message after 3 seconds
+        self.window.after(3000, lambda: self.status_var.set("Ready"))
+    
+    def _copy_row_to_clipboard(self, row_id):
+        """Copy entire row to clipboard as tab-separated values."""
+        values = self.tree.item(row_id)["values"]
+        columns = list(self.tree["columns"])
+        
+        # Create tab-separated string with column headers
+        header = "\t".join(columns)
+        data = "\t".join(str(v) for v in values)
+        full_text = f"{header}\n{data}"
+        
+        self.window.clipboard_clear()
+        self.window.clipboard_append(full_text)
+        self.status_var.set(f"✅ Copied entire row to clipboard ({len(columns)} columns)")
+        # Clear status message after 3 seconds
+        self.window.after(3000, lambda: self.status_var.set("Ready"))
 
     def _load_products(self, keyword: Optional[str] = None):
         """Load products from API."""
