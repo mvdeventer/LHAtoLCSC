@@ -30,14 +30,22 @@ jobs:
       - name: Build Python package
         run: python -m build
 
-      - name: Build Windows installer
-        run: python build_installer.py
-        continue-on-error: true
-
       - name: Get version from tag
         id: get_version
         shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Clean installer directory
+        shell: pwsh
+        run: |
+          if (Test-Path "installer") {
+            Remove-Item -Path "installer\*" -Force -ErrorAction SilentlyContinue
+            Write-Host "Cleaned installer directory"
+          }
+
+      - name: Build Windows installer
+        run: python build_installer.py
+        continue-on-error: true
 
       - name: Extract changelog for this version
         id: changelog
@@ -82,10 +90,10 @@ jobs:
 
             See [README.md](https://github.com/${{ github.repository }}/blob/main/README.md) for full documentation.
           files: |
-            dist/*.whl
-            dist/*.tar.gz
-            installer/*.exe
-            installer/*.zip
+            dist/lhatolcsc-${{ steps.get_version.outputs.VERSION }}-py3-none-any.whl
+            dist/lhatolcsc-${{ steps.get_version.outputs.VERSION }}.tar.gz
+            installer/LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Setup.exe
+            installer/LHAtoLCSC-${{ steps.get_version.outputs.VERSION }}-Portable.zip
           draft: false
           prerelease: false
         env:

@@ -607,6 +607,83 @@ See [README.md](https://github.com/{self.repo_name}/blob/main/README.md) for ful
         self.logger.warning("Assets not found within timeout period")
         return False
 
+    def _clean_old_installers(self, next_version: Version, dry_run: bool = False):
+        """Clean old installer files to ensure only the latest version is released."""
+        self.logger.step("Cleaning old installer files from local directory")
+
+        installer_dir = self.repo_path / "installer"
+        if not installer_dir.exists():
+            self.logger.info("No installer directory found")
+            return
+
+        # Pattern for current version files
+        current_version_patterns = [
+            f"LHAtoLCSC-{next_version}-Setup.exe",
+            f"LHAtoLCSC-{next_version}-Portable.zip"
+        ]
+
+        try:
+            removed_count = 0
+            for file in installer_dir.glob("*"):
+                if file.is_file() and file.name not in current_version_patterns:
+                    if dry_run:
+                        self.logger.info(f"Would remove: {file.name}")
+                    else:
+                        file.unlink()
+                        self.logger.success(f"Removed old installer: {file.name}")
+                    removed_count += 1
+
+            if removed_count == 0:
+                self.logger.info("No old installer files to remove")
+            elif not dry_run:
+                self.logger.success(f"Cleaned {removed_count} old installer file(s)")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to clean local installers: {e}")
+
+    def _clean_old_release_assets(self, dry_run: bool = False):
+        """Remove old installer files from previous GitHub releases."""
+        self.logger.step("Cleaning old installer assets from previous GitHub releases")
+
+        if dry_run:
+            self.logger.info("DRY RUN: Would clean old release assets")
+            return
+
+        try:
+            releases = list(self.gh_repo.get_releases())
+            cleaned_releases = 0
+
+            for release in releases:
+                # Skip the latest 3 releases
+                if cleaned_releases >= len(releases) - 3:
+                    continue
+
+                assets_to_remove = []
+                for asset in release.get_assets():
+                    # Remove old installer files but keep wheel and tar.gz
+                    if asset.name.endswith(('-Setup.exe', '-Portable.zip')):
+                        # Check if it's from a different version than the release
+                        if not asset.name.startswith(f"LHAtoLCSC-{release.tag_name.lstrip('v')}-"):
+                            assets_to_remove.append(asset)
+
+                for asset in assets_to_remove:
+                    try:
+                        asset.delete_asset()
+                        self.logger.success(f"Removed {asset.name} from {release.tag_name}")
+                    except Exception as e:
+                        self.logger.warning(f"Failed to remove {asset.name}: {e}")
+
+                if assets_to_remove:
+                    cleaned_releases += 1
+
+            if cleaned_releases == 0:
+                self.logger.info("No old installer assets found in previous releases")
+            else:
+                self.logger.success(f"Cleaned assets from {cleaned_releases} previous release(s)")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to clean old release assets: {e}")
+
     def perform_release(self, bump_type: str = "patch", dry_run: bool = False,
                         force: bool = False, wait_for_assets: bool = True) -> bool:
         """Perform the complete release process."""
@@ -631,32 +708,38 @@ See [README.md](https://github.com/{self.repo_name}/blob/main/README.md) for ful
                 self.logger.error("Working directory is dirty! Commit changes first or use --force")
                 return False
 
-            # 4. Update version files
+            # 4. Clean old installers from local installer directory
+            self._clean_old_installers(next_version, dry_run)
+
+            # 5. Update version files
             changes = self.update_version_files(next_version, dry_run)
 
-            # 5. Generate release notes
+            # 6. Generate release notes
             latest_release = self.get_latest_release_version()
             since_tag = f"v{latest_release}" if latest_release else None
             release_notes = self.generate_release_notes(since_tag)
 
-            # 6. Update changelog
+            # 7. Update changelog
             self.update_changelog(next_version, release_notes, dry_run)
 
-            # 7. Commit and tag
+            # 8. Commit and tag
             if not self.commit_and_tag(next_version, dry_run):
                 self.logger.error("Failed to commit and tag")
                 if not dry_run:
                     self.rollback_changes(changes)
                 return False
 
-            # 8. Create GitHub release
+            # 9. Create GitHub release
             if not self.create_github_release(next_version, release_notes, wait_for_assets, dry_run):
                 self.logger.error("Failed to create GitHub release")
                 return False
 
-            # 9. Verify assets if requested
+            # 10. Verify assets if requested
             if wait_for_assets and not dry_run:
                 self.verify_release_assets(next_version)
+
+            # 11. Clean old installer assets from previous releases
+            self._clean_old_release_assets(dry_run)
 
             self.logger.header("🎉 Release Complete!")
             self.logger.success(f"Successfully released v{next_version}")
