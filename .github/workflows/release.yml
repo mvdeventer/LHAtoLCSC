@@ -27,6 +27,9 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller build wheel
 
+      - name: Install InnoSetup
+        run: choco install innosetup -y
+
       - name: Build Python package
         run: python -m build
 
