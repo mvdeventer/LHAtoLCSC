@@ -19,6 +19,17 @@ from datetime import datetime
 import re
 from typing import Optional
 
+# Set UTF-8 encoding for Windows console
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        # Python < 3.7
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
 
 class Colors:
     """ANSI color codes."""
@@ -41,17 +52,26 @@ def print_header(text: str):
 
 def print_success(text: str):
     """Print success message."""
-    print(f"{Colors.OKGREEN}✓ {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.OKGREEN}✓ {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.OKGREEN}[OK] {text}{Colors.ENDC}")
 
 
 def print_error(text: str):
     """Print error message."""
-    print(f"{Colors.FAIL}✗ {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.FAIL}✗ {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.FAIL}[ERROR] {text}{Colors.ENDC}")
 
 
 def print_info(text: str):
     """Print info message."""
-    print(f"{Colors.OKCYAN}ℹ {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.OKCYAN}ℹ {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.OKCYAN}[INFO] {text}{Colors.ENDC}")
 
 
 def run_command(cmd: list, cwd: Optional[Path] = None) -> bool:
