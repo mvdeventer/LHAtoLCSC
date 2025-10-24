@@ -222,7 +222,7 @@ a = Analysis(
         'logging.config',
     ],
     hookspath=[],
-    hooksconfig={{}},
+    hooksconfig={},
     runtime_hooks=[],
     excludes=[
         'tests',
